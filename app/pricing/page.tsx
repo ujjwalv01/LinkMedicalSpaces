@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Check, Loader2, Building, ShieldCheck, HelpCircle, ArrowRight, User } from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 export default function PricingPage() {
   const { data: session, status } = useSession()
@@ -56,37 +58,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Building className="w-5 h-5" />
-            </div>
-            <span className="font-bold text-slate-900 tracking-tight text-lg">
-              LinkMedical<span className="text-teal-600">Spaces</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {status === 'authenticated' ? (
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-sm font-semibold text-slate-600 hover:text-teal-600 transition-colors"
-              >
-                Dashboard
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/signin')}
-                className="text-sm font-semibold text-slate-600 hover:text-teal-600 transition-colors"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Main Hero & Content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12 md:py-20 flex flex-col items-center">
@@ -288,12 +260,7 @@ export default function PricingPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center">
-        <p className="text-xs text-slate-400">
-          © {new Date().getFullYear()} LinkMedicalSpaces. All rights reserved.
-        </p>
-      </footer>
+      <Footer />
     </div>
   )
 }

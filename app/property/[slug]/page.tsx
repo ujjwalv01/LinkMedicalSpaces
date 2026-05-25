@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import PropertyDetailClient from './PropertyDetailClient'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 interface PropertyPageProps {
   params: {
@@ -121,8 +123,12 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <PropertyDetailClient listing={serializedListing} />
+    <div className="min-h-screen bg-white flex flex-col justify-between">
+      <Navbar />
+      <main className="flex-grow">
+        <PropertyDetailClient listing={serializedListing} />
+      </main>
+      <Footer />
     </div>
   )
 }

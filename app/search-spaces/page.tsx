@@ -24,6 +24,7 @@ import {
   Sparkles,
   Info
 } from 'lucide-react'
+import Navbar from '@/components/Navbar'
 
 // Define listings types returned by the backend API
 interface ListingMedia {
@@ -510,54 +511,7 @@ export default function SearchSpacesPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       
-      {/* ─── Navigation Header ─── */}
-      <nav className="bg-white border-b border-slate-200 py-3.5 px-6 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
-          
-          {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-            <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-600/20">
-              <Building className="w-5 h-5" />
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-xl">
-              LinkMedical<span className="text-teal-600 font-black">Spaces</span>
-            </span>
-          </div>
-
-          {/* Quick Header Search */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-full py-1.5 pl-4 pr-1.5 max-w-md w-full transition-all">
-            <input
-              type="text"
-              placeholder="Search keyword (e.g. clinic, downtown)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-sm w-full outline-none text-slate-800 placeholder-slate-400 font-medium"
-            />
-            <button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white rounded-full p-2 transition-colors flex-shrink-0">
-              <Search className="w-4 h-4" />
-            </button>
-          </form>
-
-          {/* User Status / Dashboard */}
-          <div className="flex items-center gap-3">
-            {authStatus === 'authenticated' ? (
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow transition-all hover:scale-[1.02] active:scale-98"
-              >
-                Dashboard
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/signin')}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl transition-all"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* ─── Search / Filter Toolbar ─── */}
       <section className="bg-white border-b border-slate-200 py-3.5 px-6 sticky top-[68px] z-40 shadow-sm">

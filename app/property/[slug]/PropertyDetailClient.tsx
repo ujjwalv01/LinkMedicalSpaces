@@ -335,28 +335,6 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
 
   return (
     <div className="min-h-screen bg-white pb-20 font-sans">
-      
-      {/* ─── Top Sticky Nav ─── */}
-      <nav className="bg-white border-b border-slate-200 py-3.5 px-6 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/search-spaces')}>
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white shadow-md">
-              <Building className="w-4.5 h-4.5" />
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-lg">
-              LinkMedical<span className="text-teal-600 font-black">Spaces</span>
-            </span>
-          </div>
-
-          <button
-            onClick={() => router.push('/search-spaces')}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-teal-600 border border-slate-200 rounded-xl px-3 py-1.5 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Search
-          </button>
-        </div>
-      </nav>
 
       {/* ─── Hero Gallery Section (Airbnb Style Grid) ─── */}
       <section className="max-w-7xl mx-auto px-6 pt-6">
