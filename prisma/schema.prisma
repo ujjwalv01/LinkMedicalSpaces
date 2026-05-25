@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// LinkMedicalSpaces — Prisma Schema
+// Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -7,10 +7,90 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// ─── Auth (NextAuth) ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SEEKER
+  OWNER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  name               String?
+  image              String?
+  password           String?            // Hashed — for credentials provider
+
+  // Role & Verification
+  role               UserRole           @default(SEEKER)
+  verificationStatus VerificationStatus @default(PENDING)
+  mciNumber          String?            // Medical Council of India / License number
+  documentUrl        String?            // Uploaded license / certificate (Cloudinary URL)
+
+  // Subscription
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionId     String?            // Stripe subscription ID
+  subscriptionExpiry DateTime?
+
+  // Timestamps
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // NextAuth relations
+  accounts           Account[]
+  sessions           Session[]
+
+  // App relations
+  listings           Listing[]
+  bookings           Booking[]
+  subscription       Subscription?
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEXTAUTH — Account & Session (required for Prisma adapter)
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Account {
   id                String  @id @default(cuid())
@@ -26,7 +106,7 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -36,6 +116,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -47,230 +128,137 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ─── Users ───────────────────────────────────────────────────────────────────
-
-enum UserRole {
-  ADMIN
-  PROVIDER // Space owner / lister
-  SEEKER   // Looking for space
-}
-
-model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
-  password       String?   // Hashed (credentials provider)
-  role           UserRole  @default(SEEKER)
-  phone          String?
-  bio            String?   @db.Text
-  specialty      String?   // Medical specialty
-  licenseNumber  String?
-  isVerified     Boolean   @default(false)
-  stripeCustomerId String? @unique
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  accounts      Account[]
-  sessions      Session[]
-  listings      Listing[]
-  bookings      Booking[]
-  reviews       Review[]       @relation("ReviewAuthor")
-  favorites     Favorite[]
-  subscription  Subscription?
-}
-
-// ─── Listings ────────────────────────────────────────────────────────────────
-
-enum ListingStatus {
-  DRAFT
-  ACTIVE
-  INACTIVE
-  PENDING_REVIEW
-}
-
-enum ListingType {
-  LEASE
-  SUBLET
-  SHARED
-  HOURLY
-}
-
-enum SpaceType {
-  EXAM_ROOM
-  SURGICAL_SUITE
-  IMAGING_CENTER
-  DENTAL_OFFICE
-  THERAPY_ROOM
-  LAB
-  FULL_OFFICE
-  MEDICAL_SPA
-  URGENT_CARE
-  OTHER
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Listing {
-  id            String        @id @default(cuid())
-  slug          String        @unique
-  title         String
-  description   String        @db.Text
-  spaceType     SpaceType
-  listingType   ListingType
-  status        ListingStatus @default(DRAFT)
-  
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  description      String        @db.Text
+
+  // Status & ownership
+  status           ListingStatus @default(DRAFT)
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Space details
+  spaceType        String        // e.g. "Exam Room", "Surgical Suite", "Dental Office"
+
+  // Pricing (all optional — owners set what applies)
+  pricePerHour     Float?
+  pricePerDay      Float?
+  pricePerMonth    Float?
+
   // Location
-  address       String
-  city          String
-  state         String
-  zipCode       String
-  country       String        @default("US")
-  latitude      Float?
-  longitude     Float?
-  
-  // Pricing
-  pricePerMonth Float?
-  pricePerHour  Float?
-  pricePerDay   Float?
-  
-  // Details
-  squareFeet    Int?
-  bedrooms      Int?          // Exam rooms
-  bathrooms     Int?
-  parkingSpaces Int?
-  
-  // Features / Amenities (stored as string array)
-  amenities     String[]
-  specialties   String[]      // Accepted medical specialties
-  
-  // AI-generated content
-  aiDescription String?       @db.Text
-  
+  address          String
+  city             String
+  state            String
+  country          String        @default("US")
+  zipCode          String
+  latitude         Float?
+  longitude        Float?
+
+  // Flexible JSON fields
+  amenities        Json          @default("[]")   // string[]
+  availabilityHours Json         @default("{}")   // { monday: { open: "09:00", close: "17:00" }, ... }
+
   // Meta
-  ownerId       String
-  viewCount     Int           @default(0)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  viewCount        Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   // Relations
-  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  images        ListingImage[]
-  bookings      Booking[]
-  reviews       Review[]
-  favorites     Favorite[]
-  availability  Availability[]
+  media            ListingMedia[]
+  bookings         Booking[]
+
+  @@index([city])
+  @@index([state])
+  @@index([status])
+  @@index([userId])
+  @@index([spaceType])
 }
 
-model ListingImage {
-  id         String   @id @default(cuid())
-  listingId  String
-  url        String
-  publicId   String   // Cloudinary public ID
-  alt        String?
-  isPrimary  Boolean  @default(false)
-  order      Int      @default(0)
-  createdAt  DateTime @default(now())
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING MEDIA
+// ─────────────────────────────────────────────────────────────────────────────
 
-  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+model ListingMedia {
+  id           String    @id @default(cuid())
+  listingId    String
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  type         MediaType @default(IMAGE)
+  originalUrl  String                         // Raw upload URL (Cloudinary)
+  optimizedUrl String?                        // Transformed/compressed URL
+  caption      String?
+  order        Int       @default(0)          // Display sort order
+
+  createdAt    DateTime  @default(now())
+
+  @@index([listingId])
 }
 
-// ─── Availability ─────────────────────────────────────────────────────────────
-
-model Availability {
-  id          String   @id @default(cuid())
-  listingId   String
-  dayOfWeek   Int      // 0=Sun, 1=Mon, ..., 6=Sat
-  startTime   String   // "09:00"
-  endTime     String   // "17:00"
-  isAvailable Boolean  @default(true)
-  
-  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-}
-
-// ─── Bookings ────────────────────────────────────────────────────────────────
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-  REJECTED
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Booking {
-  id              String        @id @default(cuid())
-  listingId       String
-  userId          String
-  status          BookingStatus @default(PENDING)
-  startDate       DateTime
-  endDate         DateTime
-  totalPrice      Float
-  message         String?       @db.Text
-  stripePaymentId String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id          String        @id @default(cuid())
+  listingId   String
+  listing     Listing       @relation(fields: [listingId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
 
-  listing         Listing       @relation(fields: [listingId], references: [id])
-  user            User          @relation(fields: [userId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  totalPrice  Float
+  status      BookingStatus @default(PENDING)
+
+  // Optional payment reference
+  stripePaymentIntentId String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([listingId])
+  @@index([userId])
 }
 
-// ─── Reviews ─────────────────────────────────────────────────────────────────
-
-model Review {
-  id         String   @id @default(cuid())
-  listingId  String
-  authorId   String
-  rating     Int      // 1-5
-  comment    String   @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  author     User     @relation("ReviewAuthor", fields: [authorId], references: [id])
-}
-
-// ─── Favorites ────────────────────────────────────────────────────────────────
-
-model Favorite {
-  id        String   @id @default(cuid())
-  userId    String
-  listingId String
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listingId])
-}
-
-// ─── Subscriptions ───────────────────────────────────────────────────────────
-
-enum SubscriptionPlan {
-  FREE
-  BASIC    // $29/mo — 1 listing
-  PRO      // $79/mo — unlimited listings
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  INACTIVE
-  CANCELLED
-  PAST_DUE
-  TRIALING
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Subscription {
   id                   String             @id @default(cuid())
   userId               String             @unique
-  plan                 SubscriptionPlan   @default(FREE)
-  status               SubscriptionStatus @default(INACTIVE)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   stripeSubscriptionId String?            @unique
-  stripePriceId        String?
-  stripeCurrentPeriodEnd DateTime?
-  cancelAtPeriodEnd    Boolean            @default(false)
+  status               SubscriptionStatus @default(INACTIVE)
+  planName             String             @default("Annual")  // e.g. "Annual", "Monthly"
+  amount               Float              @default(120.00)    // $120/year default
+
+  startDate            DateTime?
+  endDate              DateTime?
+
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
+}
 
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+// ─────────────────────────────────────────────────────────────────────────────
+// OTP CODE  (for email magic-link / 6-digit OTP flow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String   // 6-digit OTP (stored as plain or hashed)
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
