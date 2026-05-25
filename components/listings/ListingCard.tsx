@@ -5,20 +5,23 @@ import { Edit, Trash2, MapPin, Building, Clock } from 'lucide-react'
 export interface ListingCardProps {
   listing: {
     id: string
-    title: string
-    spaceType: string
-    address: string
-    city: string
-    state: string
+    title?: string | null
+    spaceType?: string | null
+    address?: string | null
+    city?: string | null
+    state?: string | null
     pricePerHour?: number | null
     pricePerDay?: number | null
     pricePerMonth?: number | null
     status?: string
     media?: { originalUrl: string }[]
+    description?: string | null
+    squareFeet?: number | null
   }
   showActions?: boolean
   onEdit?: (id: string) => void
   onDelete?: (id: string) => void
+  onContinue?: (id: string) => void
 }
 
 export default function ListingCard({
@@ -26,9 +29,10 @@ export default function ListingCard({
   showActions = false,
   onEdit,
   onDelete,
+  onContinue,
 }: ListingCardProps) {
   const mainImage = listing.media?.[0]?.originalUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800'
-  const spaceTypeLabel = listing.spaceType.replace(/_/g, ' ')
+  const spaceTypeLabel = listing.spaceType ? listing.spaceType.replace(/_/g, ' ') : 'Medical Space'
 
   // Determine the display price
   let displayPrice = ''
@@ -55,13 +59,27 @@ export default function ListingCard({
     }
   }
 
+  // Calculate listing draft progress
+  const getDraftStep = (item: any) => {
+    const photoCount = item.media?.filter((m: any) => m.type === 'IMAGE').length || 0
+    if (!item.spaceType) return 1
+    if (!item.title || !item.squareFeet) return 2
+    if (!item.address) return 3
+    if (photoCount < 3) return 4
+    if (!item.description || item.description.length < 100) return 6
+    return 7
+  }
+
+  const draftStep = getDraftStep(listing)
+  const completionPercentage = Math.round((draftStep / 7) * 100)
+
   return (
     <div className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
       {/* Listing Image */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
         <img
           src={mainImage}
-          alt={listing.title}
+          alt={listing.title || 'Listing draft'}
           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
         />
 
@@ -97,30 +115,65 @@ export default function ListingCard({
 
           {/* Title */}
           <h4 className="font-extrabold text-slate-800 text-base leading-snug group-hover:text-teal-600 transition-colors line-clamp-1">
-            {listing.title}
+            {listing.title || 'Unnamed Draft Space'}
           </h4>
+
+          {/* Draft progress indicator */}
+          {listing.status === 'DRAFT' && (
+            <div className="space-y-1.5 pt-1 pb-1">
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <span>Step {draftStep} of 7</span>
+                <span>{completionPercentage}%</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-teal-600 h-full transition-all duration-300"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Address */}
           <p className="text-slate-500 text-xs flex items-center gap-1 leading-none">
             <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-            <span className="line-clamp-1">{listing.city}, {listing.state}</span>
+            <span className="line-clamp-1">
+              {listing.city && listing.state ? `${listing.city}, ${listing.state}` : 'No address specified'}
+            </span>
           </p>
         </div>
 
         {/* Action Buttons */}
         {showActions && (onEdit || onDelete) && (
           <div className="flex gap-2 pt-3 border-t border-slate-100">
-            {onEdit && (
+            {listing.status === 'DRAFT' ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  onEdit(listing.id)
+                  if (onContinue) {
+                    onContinue(listing.id)
+                  } else {
+                    window.location.href = `/add-listing?draftId=${listing.id}`
+                  }
                 }}
-                className="flex-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 text-slate-600 border border-slate-200 hover:border-teal-200 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow"
               >
-                <Edit className="w-3.5 h-3.5" />
-                Edit
+                <Clock className="w-3.5 h-3.5" />
+                Continue
               </button>
+            ) : (
+              onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(listing.id)
+                  }}
+                  className="flex-1 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 text-slate-600 border border-slate-200 hover:border-teal-200 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+              )
             )}
             {onDelete && (
               <button

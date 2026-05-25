@@ -100,4 +100,42 @@ export async function sendPasswordResetEmail(to: string, resetToken: string) {
   })
 }
 
+// ─── Draft Reminder Email ──────────────────────────────────────────────────
+
+export async function sendDraftReminderEmail(to: string, name: string, draftId: string) {
+  const directLink = `${APP_URL}/dashboard/listings/draft/${draftId}`
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Your listing is waiting to be published!',
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0D9488, #0F766E); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Complete Your Listing</h1>
+          <p style="color: rgba(255,255,255,0.9); margin-top: 8px;">Your medical space draft is waiting on LinkMedicalSpaces</p>
+        </div>
+        <div style="background: #fff; padding: 40px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
+          <h2 style="color: #111827;">Hi ${name}! 👋</h2>
+          <p style="color: #6B7280; line-height: 1.6;">
+            We noticed you started listing a medical space but didn't finish publishing it. Don't worry, we saved all your progress!
+          </p>
+          <p style="color: #6B7280; line-height: 1.6;">
+            Completing your listing takes just a couple of minutes. Click the button below to resume right where you left off.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${directLink}" style="display: inline-block; background: #0D9488; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Resume Listing Draft
+            </a>
+          </div>
+          <p style="color: #9CA3AF; font-size: 12px; line-height: 1.5;">
+            Need help? Reply to this email or visit our help center. We are here to assist you in getting your clinic space leased.
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export default resend
+

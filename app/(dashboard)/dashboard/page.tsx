@@ -483,6 +483,7 @@ export default function DashboardPage() {
                       showActions={true}
                       onDelete={handleDeleteListing}
                       onEdit={(id) => setEditingListing(item)}
+                      onContinue={(id) => router.push(`/add-listing?draftId=${id}`)}
                     />
                   ))}
                 </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader } from '@googlemaps/js-api-loader'
@@ -19,6 +19,7 @@ import {
   Plus,
   Minus,
   Check,
+  Clock,
   MapPin,
   Search,
   ArrowLeft,
@@ -98,10 +99,13 @@ const uploadWithProgress = (
 export default function AddListingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // State Management
   const [currentStep, setCurrentStep] = useState(1)
   const [draftId, setDraftId] = useState<string | null>(null)
+  const [recoveryDraft, setRecoveryDraft] = useState<any | null>(null)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   
   // Step 1: Space Type
   const [selectedSpaceType, setSelectedSpaceType] = useState<string | null>(null)
@@ -176,88 +180,201 @@ export default function AddListingPage() {
     }
   }, [status, router])
 
-  // Load existing draft listing on mount
+  const handleContinueDraft = (draft: any) => {
+    setLoadingDraft(true)
+    setDraftId(draft.id)
+    setSelectedSpaceType(draft.spaceType)
+    setTitle(draft.title || '')
+    setRooms(draft.rooms || 1)
+    setSquareFeet(draft.squareFeet ? draft.squareFeet.toString() : '')
+    
+    let parsedAmenities = []
+    try {
+      parsedAmenities = typeof draft.amenities === 'string' 
+        ? JSON.parse(draft.amenities) 
+        : draft.amenities || []
+    } catch (_) {
+      parsedAmenities = []
+    }
+    setSelectedAmenities(parsedAmenities)
+
+    setAddress(draft.address || '')
+    setCity(draft.city || '')
+    setState(draft.state || '')
+    setZipCode(draft.zipCode || '')
+    setCountry(draft.country || 'US')
+    setLatitude(draft.latitude)
+    setLongitude(draft.longitude)
+
+    setDescription(draft.description || '')
+    setPricePerHour(draft.pricePerHour ? draft.pricePerHour.toString() : '')
+    setPricePerDay(draft.pricePerDay ? draft.pricePerDay.toString() : '')
+    setPricePerMonth(draft.pricePerMonth ? draft.pricePerMonth.toString() : '')
+
+    let parsedHours = {}
+    try {
+      parsedHours = typeof draft.availabilityHours === 'string'
+        ? JSON.parse(draft.availabilityHours)
+        : draft.availabilityHours || {}
+    } catch (_) {
+      parsedHours = {}
+    }
+    setAvailabilityHours(parsedHours)
+
+    // Load related media
+    const media = draft.media || []
+    const photos = media.filter((m: any) => m.type === 'IMAGE')
+    const video = media.find((m: any) => m.type === 'VIDEO') || null
+    
+    setUploadedPhotos(photos)
+    setUploadedVideo(video)
+
+    // Determine step restoration
+    if (!draft.spaceType) {
+      setCurrentStep(1)
+    } else if (!draft.title || !draft.squareFeet) {
+      setCurrentStep(2)
+    } else if (!draft.address) {
+      setCurrentStep(3)
+    } else if (photos.length < 3) {
+      setCurrentStep(4)
+    } else if (!draft.description || draft.description.length < 100) {
+      setCurrentStep(6)
+    } else {
+      setCurrentStep(7)
+    }
+
+    setRecoveryDraft(null)
+    setLoadingDraft(false)
+  }
+
+  const handleDiscardDraft = async (draft: any) => {
+    setLoadingDraft(true)
+    try {
+      await fetch(`/api/listings/${draft.id}`, { method: 'DELETE' })
+      
+      // Reset form states
+      setDraftId(null)
+      setSelectedSpaceType(null)
+      setTitle('')
+      setRooms(1)
+      setSquareFeet('')
+      setSelectedAmenities([])
+      setAddress('')
+      setCity('')
+      setState('')
+      setZipCode('')
+      setLatitude(null)
+      setLongitude(null)
+      setUploadedPhotos([])
+      setUploadedVideo(null)
+      setDescription('')
+      setPricePerHour('')
+      setPricePerDay('')
+      setPricePerMonth('')
+      setAvailabilityHours({})
+      
+      setCurrentStep(1)
+    } catch (err) {
+      console.error('Failed to discard draft:', err)
+    } finally {
+      setRecoveryDraft(null)
+      setLoadingDraft(false)
+    }
+  }
+
+  // Check for existing draft on mount
   useEffect(() => {
     if (status !== 'authenticated') return
 
-    const loadDraft = async () => {
+    const checkDraft = async () => {
       try {
-        const res = await fetch('/api/listings/draft')
+        const queryDraftId = searchParams.get('draftId')
+        const url = queryDraftId ? `/api/listings/draft?id=${queryDraftId}` : '/api/listings/draft'
+        
+        const res = await fetch(url)
         const draft = await res.json()
         
         if (res.ok && draft) {
-          setDraftId(draft.id)
-          setSelectedSpaceType(draft.spaceType)
-          setTitle(draft.title || '')
-          setRooms(draft.rooms || 1)
-          setSquareFeet(draft.squareFeet ? draft.squareFeet.toString() : '')
-          
-          let parsedAmenities = []
-          try {
-            parsedAmenities = typeof draft.amenities === 'string' 
-              ? JSON.parse(draft.amenities) 
-              : draft.amenities || []
-          } catch (_) {
-            parsedAmenities = []
-          }
-          setSelectedAmenities(parsedAmenities)
-
-          setAddress(draft.address || '')
-          setCity(draft.city || '')
-          setState(draft.state || '')
-          setZipCode(draft.zipCode || '')
-          setCountry(draft.country || 'US')
-          setLatitude(draft.latitude)
-          setLongitude(draft.longitude)
-
-          setDescription(draft.description || '')
-          setPricePerHour(draft.pricePerHour ? draft.pricePerHour.toString() : '')
-          setPricePerDay(draft.pricePerDay ? draft.pricePerDay.toString() : '')
-          setPricePerMonth(draft.pricePerMonth ? draft.pricePerMonth.toString() : '')
-
-          let parsedHours = {}
-          try {
-            parsedHours = typeof draft.availabilityHours === 'string'
-              ? JSON.parse(draft.availabilityHours)
-              : draft.availabilityHours || {}
-          } catch (_) {
-            parsedHours = {}
-          }
-          setAvailabilityHours(parsedHours)
-
-          // Load related media
-          const media = draft.media || []
-          const photos = media.filter((m: any) => m.type === 'IMAGE')
-          const video = media.find((m: any) => m.type === 'VIDEO') || null
-          
-          setUploadedPhotos(photos)
-          setUploadedVideo(video)
-
-          // Determine step restoration
-          if (!draft.spaceType) {
-            setCurrentStep(1)
-          } else if (!draft.title || !draft.squareFeet) {
-            setCurrentStep(2)
-          } else if (!draft.address) {
-            setCurrentStep(3)
-          } else if (photos.length < 3) {
-            setCurrentStep(4)
-          } else if (!draft.description || draft.description.length < 100) {
-            // Photos are complete, check if description is complete
-            setCurrentStep(6)
-          } else {
-            setCurrentStep(7)
-          }
+          setRecoveryDraft(draft)
+        } else {
+          setLoadingDraft(false)
         }
       } catch (err) {
-        console.error('Failed to load draft:', err)
-      } finally {
+        console.error('Failed to check draft:', err)
         setLoadingDraft(false)
       }
     }
 
-    loadDraft()
-  }, [status])
+    checkDraft()
+  }, [status, searchParams])
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!draftId || currentStep === 7) return
+
+    const interval = setInterval(async () => {
+      setAutoSaveStatus('saving')
+      try {
+        const res = await fetch('/api/listings/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: draftId,
+            spaceType: selectedSpaceType,
+            title: title || undefined,
+            rooms: rooms || 1,
+            squareFeet: squareFeet ? parseFloat(squareFeet) : undefined,
+            amenities: selectedAmenities,
+            address: address || undefined,
+            city: city || undefined,
+            state: state || undefined,
+            zipCode: zipCode || undefined,
+            country,
+            latitude,
+            longitude,
+            description: description || undefined,
+            pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
+            pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
+            pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
+            availabilityHours,
+          }),
+        })
+
+        if (res.ok) {
+          setAutoSaveStatus('saved')
+          setTimeout(() => setAutoSaveStatus('idle'), 3000)
+        } else {
+          setAutoSaveStatus('idle')
+        }
+      } catch (err) {
+        console.error('Auto-save failed:', err)
+        setAutoSaveStatus('idle')
+      }
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [
+    draftId,
+    currentStep,
+    selectedSpaceType,
+    title,
+    rooms,
+    squareFeet,
+    selectedAmenities,
+    address,
+    city,
+    state,
+    zipCode,
+    country,
+    latitude,
+    longitude,
+    description,
+    pricePerHour,
+    pricePerDay,
+    pricePerMonth,
+    availabilityHours,
+  ])
 
   // Google Maps Integration (Step 3)
   useEffect(() => {
@@ -825,6 +942,59 @@ export default function AddListingPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between">
+      {/* Draft Recovery Modal */}
+      {recoveryDraft && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 p-6 space-y-6"
+          >
+            <div className="text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto text-teal-600">
+                <Clock className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Continue Unfinished Listing?</h3>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                You have an unfinished space listing draft. Would you like to continue where you left off or start fresh?
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {recoveryDraft.media?.[0]?.originalUrl ? (
+                  <img src={recoveryDraft.media[0].originalUrl} alt="Draft preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Building className="w-5 h-5 text-slate-400" />
+                )}
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-bold text-slate-800 truncate">{recoveryDraft.title || 'Unnamed Draft Space'}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 capitalize">Type: {recoveryDraft.spaceType ? recoveryDraft.spaceType.replace(/_/g, ' ').toLowerCase() : 'Not Set'}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleDiscardDraft(recoveryDraft)}
+                className="flex-1 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 py-3 rounded-xl text-xs font-semibold transition-all"
+              >
+                Start Fresh
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleContinueDraft(recoveryDraft)}
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg shadow-teal-600/10 active:scale-97 transition-all flex items-center justify-center gap-1"
+              >
+                Continue Draft
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Top Progress bar */}
       <header className="bg-white border-b border-slate-100 py-4 px-6 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -838,14 +1008,29 @@ export default function AddListingPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => saveDraftProgress()}
-            disabled={savingDraft}
-            className="flex items-center gap-1 text-slate-500 hover:text-slate-900 font-semibold text-xs border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-            Save & Exit
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Auto Save Status Indicator */}
+            {autoSaveStatus === 'saving' && (
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 animate-pulse">
+                <Loader2 className="w-3 h-3 text-teal-600 animate-spin" />
+                Saving...
+              </span>
+            )}
+            {autoSaveStatus === 'saved' && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-teal-600">
+                Saved ✓
+              </span>
+            )}
+
+            <button
+              onClick={() => saveDraftProgress()}
+              disabled={savingDraft}
+              className="flex items-center gap-1 text-slate-500 hover:text-slate-900 font-semibold text-xs border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+              Save & Exit
+            </button>
+          </div>
         </div>
       </header>
 

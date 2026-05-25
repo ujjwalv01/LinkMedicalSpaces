@@ -5,19 +5,28 @@ import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
 // ─── GET /api/listings/draft ───────────────────────────────────────────────
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    const where: any = {
+      userId: session.user.id,
+      status: 'DRAFT',
+    }
+
+    if (id) {
+      where.id = id
+    }
+
     // Retrieve the user's latest draft listing with media
     const draft = await prisma.listing.findFirst({
-      where: {
-        userId: session.user.id,
-        status: 'DRAFT',
-      },
+      where,
       include: {
         media: { orderBy: { order: 'asc' } },
       },
