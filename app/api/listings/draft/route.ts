@@ -48,6 +48,11 @@ const DraftListingSchema = z.object({
   country: z.string().default('US'),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
+  description: z.string().nullable().optional(),
+  pricePerHour: z.number().nullable().optional(),
+  pricePerDay: z.number().nullable().optional(),
+  pricePerMonth: z.number().nullable().optional(),
+  availabilityHours: z.any().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -101,6 +106,11 @@ export async function POST(req: NextRequest) {
           country: data.country ?? undefined,
           latitude: data.latitude ?? undefined,
           longitude: data.longitude ?? undefined,
+          description: data.description ?? undefined,
+          pricePerHour: data.pricePerHour ?? undefined,
+          pricePerDay: data.pricePerDay ?? undefined,
+          pricePerMonth: data.pricePerMonth ?? undefined,
+          availabilityHours: data.availabilityHours !== undefined ? (data.availabilityHours as any) : undefined,
         },
       })
     } else {
@@ -126,6 +136,11 @@ export async function POST(req: NextRequest) {
             country: data.country ?? undefined,
             latitude: data.latitude ?? undefined,
             longitude: data.longitude ?? undefined,
+            description: data.description ?? undefined,
+            pricePerHour: data.pricePerHour ?? undefined,
+            pricePerDay: data.pricePerDay ?? undefined,
+            pricePerMonth: data.pricePerMonth ?? undefined,
+            availabilityHours: data.availabilityHours !== undefined ? (data.availabilityHours as any) : undefined,
           },
         })
       } else {
@@ -139,7 +154,7 @@ export async function POST(req: NextRequest) {
             slug,
             spaceType: data.spaceType || null,
             title: data.title || null,
-            description: null,
+            description: data.description || null,
             rooms: data.rooms || 1,
             squareFeet: data.squareFeet || null,
             amenities: data.amenities ? JSON.stringify(data.amenities) : '[]',
@@ -150,6 +165,10 @@ export async function POST(req: NextRequest) {
             zipCode: data.zipCode || null,
             latitude: data.latitude || null,
             longitude: data.longitude || null,
+            pricePerHour: data.pricePerHour || null,
+            pricePerDay: data.pricePerDay || null,
+            pricePerMonth: data.pricePerMonth || null,
+            availabilityHours: data.availabilityHours ? (data.availabilityHours as any) : {},
           },
         })
       }

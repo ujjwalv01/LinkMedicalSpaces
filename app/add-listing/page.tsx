@@ -139,6 +139,21 @@ export default function AddListingPage() {
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
 
+  // Step 6: Description
+  const [description, setDescription] = useState('')
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+
+  // Step 7: Pricing + Availability
+  const [pricePerHour, setPricePerHour] = useState('')
+  const [pricePerDay, setPricePerDay] = useState('')
+  const [pricePerMonth, setPricePerMonth] = useState('')
+  const [availabilityHours, setAvailabilityHours] = useState<Record<string, { open: string; close: string }>>({})
+
+  // Publish Success States
+  const [publishing, setPublishing] = useState(false)
+  const [publishSuccess, setPublishSuccess] = useState(false)
+  const [publishedListingSlug, setPublishedListingSlug] = useState<string | null>(null)
+
   // Loading States
   const [loadingDraft, setLoadingDraft] = useState(true)
   const [savingDraft, setSavingDraft] = useState(false)
@@ -195,6 +210,21 @@ export default function AddListingPage() {
           setLatitude(draft.latitude)
           setLongitude(draft.longitude)
 
+          setDescription(draft.description || '')
+          setPricePerHour(draft.pricePerHour ? draft.pricePerHour.toString() : '')
+          setPricePerDay(draft.pricePerDay ? draft.pricePerDay.toString() : '')
+          setPricePerMonth(draft.pricePerMonth ? draft.pricePerMonth.toString() : '')
+
+          let parsedHours = {}
+          try {
+            parsedHours = typeof draft.availabilityHours === 'string'
+              ? JSON.parse(draft.availabilityHours)
+              : draft.availabilityHours || {}
+          } catch (_) {
+            parsedHours = {}
+          }
+          setAvailabilityHours(parsedHours)
+
           // Load related media
           const media = draft.media || []
           const photos = media.filter((m: any) => m.type === 'IMAGE')
@@ -212,8 +242,11 @@ export default function AddListingPage() {
             setCurrentStep(3)
           } else if (photos.length < 3) {
             setCurrentStep(4)
+          } else if (!draft.description || draft.description.length < 100) {
+            // Photos are complete, check if description is complete
+            setCurrentStep(6)
           } else {
-            setCurrentStep(5)
+            setCurrentStep(7)
           }
         }
       } catch (err) {
@@ -360,6 +393,11 @@ export default function AddListingPage() {
           country,
           latitude,
           longitude,
+          description: description || undefined,
+          pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
+          pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
+          pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
+          availabilityHours,
         }),
       })
 
@@ -671,11 +709,73 @@ export default function AddListingPage() {
     }
   }
 
+  const generateAIDescription = async () => {
+    if (!draftId) return
+    setIsGeneratingDescription(true)
+    try {
+      const res = await fetch('/api/ai/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: draftId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.description) {
+        setDescription(data.description)
+      } else {
+        alert(data.error || 'Failed to generate AI description')
+      }
+    } catch (err) {
+      alert('Failed to generate AI description')
+    } finally {
+      setIsGeneratingDescription(false)
+    }
+  }
+
+  const handlePublishListing = async () => {
+    if (!draftId) return
+    setPublishing(true)
+    try {
+      // First save current pricing states using pricing PUT API
+      const pricingRes = await fetch(`/api/listings/${draftId}/pricing`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
+          pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
+          pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
+          availabilityHours,
+        }),
+      })
+
+      if (!pricingRes.ok) {
+        const errData = await pricingRes.json()
+        alert(errData.error || 'Failed to save pricing details.')
+        setPublishing(false)
+        return
+      }
+
+      // Now call publish PUT API
+      const publishRes = await fetch(`/api/listings/${draftId}/publish`, {
+        method: 'PUT',
+      })
+
+      const publishData = await publishRes.json()
+      if (publishRes.ok && publishData.success) {
+        setPublishedListingSlug(publishData.listing.slug)
+        setPublishSuccess(true)
+      } else {
+        alert(publishData.error || 'Failed to publish listing.')
+      }
+    } catch (err) {
+      alert('Failed to publish listing.')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   const handleNext = () => {
-    if (currentStep < 5) {
+    if (currentStep < 7) {
       saveDraftProgress(currentStep + 1)
-    } else {
-      saveDraftProgress() // Steps 4-5 done, redirects to dashboard
     }
   }
 
@@ -698,6 +798,13 @@ export default function AddListingPage() {
     if (currentStep === 3) return address.trim() !== '' && city.trim() !== '' && state.trim() !== '' && zipCode.trim() !== ''
     if (currentStep === 4) return uploadedPhotos.length >= 3 // Min 3 photos
     if (currentStep === 5) return true // Optional video step
+    if (currentStep === 6) return description.trim().length >= 100
+    if (currentStep === 7) {
+      const h = pricePerHour ? parseFloat(pricePerHour) : 0
+      const d = pricePerDay ? parseFloat(pricePerDay) : 0
+      const m = pricePerMonth ? parseFloat(pricePerMonth) : 0
+      return h > 0 || d > 0 || m > 0
+    }
     return false
   }
 
@@ -1309,6 +1416,320 @@ export default function AddListingPage() {
               )}
             </motion.div>
           )}
+
+          {/* STEP 6: Description */}
+          {currentStep === 6 && (
+            <motion.div
+              key="step6"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-8"
+            >
+              <div className="space-y-2">
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Describe your medical space
+                </h2>
+                <p className="text-slate-500 text-sm">
+                  Provide a professional overview highlighting clinical infrastructure, compliance, accessibility, and practitioner workflows.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Property Description</label>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 group relative cursor-help">
+                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-teal-600 transition-colors" />
+                    <span className="font-semibold underline">Writing Tips</span>
+                    <div className="absolute right-0 bottom-7 hidden group-hover:block bg-slate-950 text-white text-[11px] p-4 rounded-2xl shadow-xl w-72 leading-relaxed z-50">
+                      <p className="font-bold border-b border-slate-800 pb-1 mb-1.5 text-teal-400">Suggested Focus Areas:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li><strong>Clinical Specs:</strong> Mention equipment (dental chairs, examination lights, autoclave).</li>
+                        <li><strong>Compliance:</strong> Highlight ADA compliance, sanitization protocols.</li>
+                        <li><strong>Layout & Access:</strong> Describe room sizes, parking availability, reception counter sharing, elevator access.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <textarea
+                  required
+                  placeholder="e.g. Modern exam room available within a premium multi-specialty medical clinic. Ideal for family physicians, dermatologists, or specialists. The space is fully ADA-compliant, featuring clinical grade vinyl flooring, custom built-in cabinetry with a handwashing sink, and high-speed secure WiFi. Practitioners will have access to a shared receptionist desk, comfortable patient waiting room, and dedicated staff breakroom. Ample street and garage parking available for patients."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full h-64 px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-sm transition-all shadow-sm leading-relaxed"
+                />
+
+                <div className="flex justify-between items-center">
+                  <span className={`text-[10px] font-bold ${description.trim().length >= 100 ? 'text-teal-600' : 'text-amber-600'}`}>
+                    {description.trim().length} / 100 minimum characters
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={generateAIDescription}
+                    disabled={isGeneratingDescription}
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {isGeneratingDescription ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                        AI is analyzing your listing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
+                        {description ? 'Regenerate with AI' : 'Generate with AI'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 7: Pricing, Review & Publish */}
+          {currentStep === 7 && (
+            <motion.div
+              key="step7"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-12"
+            >
+              {/* Part 1: Pricing Section */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h2 id="price-label" className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Set your pricing & availability
+                  </h2>
+                  <p className="text-slate-500 text-sm">
+                    Configure your medical space leasing rates. You must configure at least one active pricing tier.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Price per Hour */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Hour ($)</label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-slate-400 text-xs">$</span>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="e.g. 45"
+                        value={pricePerHour}
+                        onChange={(e) => setPricePerHour(e.target.value)}
+                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Price per Day */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Day ($)</label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-slate-400 text-xs">$</span>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="e.g. 250"
+                        value={pricePerDay}
+                        onChange={(e) => setPricePerDay(e.target.value)}
+                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Price per Month */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Month ($)</label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-slate-400 text-xs">$</span>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="e.g. 4500"
+                        value={pricePerMonth}
+                        onChange={(e) => setPricePerMonth(e.target.value)}
+                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Part 2: Availability Schedule Section */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-slate-800">Weekly Availability Hours</h3>
+                  <p className="text-slate-500 text-xs">Specify which days and during what times the clinical space is accessible.</p>
+                </div>
+
+                <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-4">
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                    const isChecked = !!availabilityHours[day]
+                    const hours = availabilityHours[day] || { open: '09:00', close: '17:00' }
+
+                    const handleDayToggle = () => {
+                      setAvailabilityHours((prev) => {
+                        const copy = { ...prev }
+                        if (copy[day]) {
+                          delete copy[day]
+                        } else {
+                          copy[day] = { open: '09:00', close: '17:00' }
+                        }
+                        return copy
+                      })
+                    }
+
+                    const handleTimeChange = (type: 'open' | 'close', val: string) => {
+                      setAvailabilityHours((prev) => ({
+                        ...prev,
+                        [day]: {
+                          ...hours,
+                          [type]: val,
+                        },
+                      }))
+                    }
+
+                    return (
+                      <div key={day} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 flex-wrap gap-4">
+                        <button
+                          type="button"
+                          onClick={handleDayToggle}
+                          className="flex items-center gap-3 text-xs font-bold text-slate-700 capitalize"
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                            isChecked ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300 bg-white'
+                          }`}>
+                            {isChecked && <Check className="w-3 h-3" />}
+                          </div>
+                          <span>{day}</span>
+                        </button>
+
+                        {isChecked && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="time"
+                              value={hours.open}
+                              onChange={(e) => handleTimeChange('open', e.target.value)}
+                              className="px-2 py-1 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-600 focus:outline-none"
+                            />
+                            <span className="text-slate-400 text-xs">to</span>
+                            <input
+                              type="time"
+                              value={hours.close}
+                              onChange={(e) => handleTimeChange('close', e.target.value)}
+                              className="px-2 py-1 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-600 focus:outline-none"
+                            />
+                          </div>
+                        )}
+
+                        {!isChecked && (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Closed / Unavailable</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Part 3: Review Section */}
+              <div className="space-y-6 pt-6 border-t border-slate-100">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-slate-800">Review listing details</h3>
+                  <p className="text-slate-500 text-xs">Double check your listing specifications before pushing it live.</p>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                  {/* Photo & Main Details Banner */}
+                  <div className="relative aspect-[21/9] bg-slate-100 border-b border-slate-100">
+                    {uploadedPhotos.length > 0 ? (
+                      <img src={uploadedPhotos[0].originalUrl} alt="Listing Cover" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-xs space-y-1">
+                        <UploadCloud className="w-8 h-8 text-slate-300" />
+                        <span>No photos uploaded yet</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6">
+                      <span className="bg-teal-600 text-white font-bold text-[9px] px-2.5 py-0.5 rounded-full w-max shadow uppercase tracking-wider mb-2">
+                        {selectedSpaceType ? selectedSpaceType.replace(/_/g, ' ') : 'Medical Space'}
+                      </span>
+                      <h4 className="text-white font-extrabold text-lg md:text-xl truncate">{title || 'Untitled Listing'}</h4>
+                      <p className="text-slate-200 text-xs mt-1 truncate">{address ? `${address}, ${city}, ${state}` : 'No address specified'}</p>
+                    </div>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="p-6 space-y-6 text-xs text-slate-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Space Specifications */}
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <h5 className="font-extrabold text-slate-800 text-sm">Space Details</h5>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentStep(2)}
+                            className="text-teal-600 hover:text-teal-700 font-bold"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <ul className="space-y-1.5">
+                          <li><strong>Total Area:</strong> {squareFeet ? `${squareFeet} sq. ft.` : 'N/A'}</li>
+                          <li><strong>Rooms / Beds:</strong> {rooms}</li>
+                          <li><strong>Amenities:</strong> {selectedAmenities.length > 0 ? selectedAmenities.join(', ') : 'None'}</li>
+                        </ul>
+                      </div>
+
+                      {/* Pricing Specifications */}
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <h5 className="font-extrabold text-slate-800 text-sm">Pricing & Availability</h5>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById('price-label');
+                              if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="text-teal-600 hover:text-teal-700 font-bold"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <ul className="space-y-1.5">
+                          <li><strong>Hourly rate:</strong> {pricePerHour ? `$${pricePerHour}/hr` : 'N/A'}</li>
+                          <li><strong>Daily rate:</strong> {pricePerDay ? `$${pricePerDay}/day` : 'N/A'}</li>
+                          <li><strong>Monthly rate:</strong> {pricePerMonth ? `$${pricePerMonth}/mo` : 'N/A'}</li>
+                          <li><strong>Active Days:</strong> {Object.keys(availabilityHours).length > 0 ? Object.keys(availabilityHours).join(', ') : 'None'}</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Description Paragraph snippet */}
+                    <div className="space-y-2.5 border-t border-slate-100 pt-5">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-extrabold text-slate-800 text-sm">Property Description</h5>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(6)}
+                          className="text-teal-600 hover:text-teal-700 font-bold"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <p className="text-slate-500 leading-relaxed whitespace-pre-wrap">{description || 'No description provided yet.'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -1328,30 +1749,124 @@ export default function AddListingPage() {
             Back
           </button>
 
-          <button
-            onClick={handleNext}
-            disabled={!isStepValid() || savingDraft || videoUploadProgress !== null}
-            className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-teal-600/10 active:scale-97 transition-all disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {savingDraft ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Autosaving...
-              </>
-            ) : currentStep === 5 ? (
-              <>
-                Save & Finish Steps 1-5
-                <ArrowRight className="w-4 h-4" />
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
+          {currentStep === 7 ? (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => saveDraftProgress()}
+                disabled={savingDraft || publishing}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-3 rounded-xl text-sm border border-slate-200 active:scale-97 transition-all disabled:opacity-50"
+              >
+                Save as Draft
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePublishListing}
+                disabled={!isStepValid() || savingDraft || publishing}
+                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-teal-600/10 active:scale-97 transition-all disabled:opacity-50"
+              >
+                {publishing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    Publish Listing
+                    <Check className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleNext}
+              disabled={!isStepValid() || savingDraft || videoUploadProgress !== null}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-teal-600/10 active:scale-97 transition-all disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {savingDraft ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Autosaving...
+                </>
+              ) : currentStep === 6 ? (
+                <>
+                  Continue to Pricing
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          )}
         </div>
       </footer>
+
+      {/* Success Published Overlay View */}
+      {publishSuccess && (
+        <div className="fixed inset-0 bg-white z-[999] flex flex-col justify-center items-center p-6 text-center space-y-8">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', damping: 15 }}
+            className="w-20 h-20 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shadow-md"
+          >
+            <Check className="w-10 h-10 stroke-[3]" />
+          </motion.div>
+
+          <div className="space-y-3 max-w-md">
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Your listing is live!</h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Congratulations! Your medical space has been published successfully. Healthcare professionals can now discover and request bookings for your space.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <button
+              onClick={() => router.push(`/property/${publishedListingSlug}`)}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm shadow-lg shadow-teal-600/10 active:scale-97 transition-all flex items-center gap-1.5"
+            >
+              <Eye className="w-4 h-4" />
+              View Listing
+            </button>
+
+            <button
+              onClick={() => {
+                // Reset all form states
+                setDraftId(null)
+                setSelectedSpaceType(null)
+                setTitle('')
+                setRooms(1)
+                setSquareFeet('')
+                setSelectedAmenities([])
+                setAddress('')
+                setCity('')
+                setState('')
+                setZipCode('')
+                setLatitude(null)
+                setLongitude(null)
+                setUploadedPhotos([])
+                setUploadedVideo(null)
+                setDescription('')
+                setPricePerHour('')
+                setPricePerDay('')
+                setPricePerMonth('')
+                setAvailabilityHours({})
+                setPublishSuccess(false)
+                setPublishedListingSlug(null)
+                setCurrentStep(1)
+              }}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl text-sm border border-slate-200 active:scale-97 transition-all"
+            >
+              Add Another Listing
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
