@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
 const OnboardingSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   bio: z.string().optional().or(z.literal('')),
   image: z.string().url().optional().or(z.literal('')),
@@ -27,12 +28,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { phone, bio, image } = parsedData.data
+    const { name, phone, bio, image } = parsedData.data
 
     // Update the user profile and mark onboarded as true
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
+        name: name || undefined,
         phone: phone || undefined,
         bio: bio || undefined,
         image: image || undefined,

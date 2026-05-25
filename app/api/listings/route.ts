@@ -20,7 +20,18 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('query')
     const sortBy = searchParams.get('sortBy') || 'newest'
 
-    const where: any = { status: 'PUBLISHED' }
+    const myOnly = searchParams.get('my') === 'true'
+    const where: any = {}
+
+    if (myOnly) {
+      const session = await getServerSession(authOptions)
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      where.userId = session.user.id
+    } else {
+      where.status = 'PUBLISHED'
+    }
 
     if (query) {
       where.OR = [
