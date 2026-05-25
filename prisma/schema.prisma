@@ -139,9 +139,9 @@ model VerificationToken {
 
 model Listing {
   id               String        @id @default(cuid())
-  title            String
+  title            String?
   slug             String        @unique
-  description      String        @db.Text
+  description      String?       @db.Text
 
   // Status & ownership
   status           ListingStatus @default(DRAFT)
@@ -149,7 +149,9 @@ model Listing {
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Space details
-  spaceType        String        // e.g. "Exam Room", "Surgical Suite", "Dental Office"
+  spaceType        String?        // e.g. "Exam Room", "Surgical Suite", "Dental Office"
+  rooms            Int?          @default(1)
+  squareFeet       Float?
 
   // Pricing (all optional — owners set what applies)
   pricePerHour     Float?
@@ -157,11 +159,11 @@ model Listing {
   pricePerMonth    Float?
 
   // Location
-  address          String
-  city             String
-  state            String
+  address          String?
+  city             String?
+  state            String?
   country          String        @default("US")
-  zipCode          String
+  zipCode          String?
   latitude         Float?
   longitude        Float?
 
