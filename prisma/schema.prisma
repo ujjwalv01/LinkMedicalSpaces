@@ -63,6 +63,11 @@ model User {
   image              String?
   password           String?            // Hashed — for credentials provider
 
+  // Onboarding
+  onboarded          Boolean            @default(false)
+  phone              String?
+  bio                String?
+
   // Role & Verification
   role               UserRole           @default(SEEKER)
   verificationStatus VerificationStatus @default(PENDING)

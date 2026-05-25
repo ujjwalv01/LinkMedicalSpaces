@@ -12,6 +12,7 @@ declare module 'next-auth' {
       role: string
       verificationStatus: string
       subscriptionStatus: string
+      onboarded: boolean
     }
   }
 
@@ -20,6 +21,7 @@ declare module 'next-auth' {
     role: string
     verificationStatus: string
     subscriptionStatus: string
+    onboarded: boolean
   }
 }
 
@@ -29,5 +31,6 @@ declare module 'next-auth/jwt' {
     role: string
     verificationStatus: string
     subscriptionStatus: string
+    onboarded: boolean
   }
 }

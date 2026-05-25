@@ -54,6 +54,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           verificationStatus: user.verificationStatus,
           subscriptionStatus: user.subscriptionStatus,
+          onboarded: user.onboarded,
         }
       },
     }),
@@ -120,6 +121,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           verificationStatus: user.verificationStatus,
           subscriptionStatus: user.subscriptionStatus,
+          onboarded: user.onboarded,
         }
       },
     }),
@@ -166,6 +168,22 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role
         token.verificationStatus = (user as any).verificationStatus
         token.subscriptionStatus = (user as any).subscriptionStatus
+        token.onboarded = (user as any).onboarded ?? false
+
+        // Fetch onboarded if not present (e.g. initial Google sign-in where role/status is fetched)
+        if (token.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email.toLowerCase() },
+            select: { id: true, onboarded: true, role: true, verificationStatus: true, subscriptionStatus: true },
+          })
+          if (dbUser) {
+            token.id = dbUser.id
+            token.role = dbUser.role
+            token.verificationStatus = dbUser.verificationStatus
+            token.subscriptionStatus = dbUser.subscriptionStatus
+            token.onboarded = dbUser.onboarded
+          }
+        }
       }
 
       // Re-fetch on session update trigger
@@ -176,6 +194,7 @@ export const authOptions: NextAuthOptions = {
             role: true,
             verificationStatus: true,
             subscriptionStatus: true,
+            onboarded: true,
             name: true,
             image: true,
           },
@@ -184,6 +203,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role
           token.verificationStatus = dbUser.verificationStatus
           token.subscriptionStatus = dbUser.subscriptionStatus
+          token.onboarded = dbUser.onboarded
           token.name = dbUser.name
           token.picture = dbUser.image
         }
@@ -199,6 +219,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).role = token.role as string
         ;(session.user as any).verificationStatus = token.verificationStatus as string
         ;(session.user as any).subscriptionStatus = token.subscriptionStatus as string
+        ;(session.user as any).onboarded = token.onboarded as boolean
       }
       return session
     },
