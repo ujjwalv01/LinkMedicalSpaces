@@ -10,8 +10,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const listing = await prisma.listing.findUnique({
-      where: { id: params.id },
+    const listing = await prisma.listing.findFirst({
+      where: {
+        OR: [
+          { id: params.id },
+          { slug: params.id },
+        ],
+      },
       include: {
         media: { orderBy: { order: 'asc' } },
         user: {
@@ -29,7 +34,7 @@ export async function GET(
 
     // Increment view count
     prisma.listing.update({
-      where: { id: params.id },
+      where: { id: listing.id },
       data: { viewCount: { increment: 1 } },
     }).catch(console.error)
 

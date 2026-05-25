@@ -137,5 +137,77 @@ export async function sendDraftReminderEmail(to: string, name: string, draftId: 
   })
 }
 
+// ─── Inquiry Email ─────────────────────────────────────────────────────────
+
+export async function sendInquiryEmail({
+  to,
+  hostName,
+  listingTitle,
+  renterName,
+  renterEmail,
+  renterPhone,
+  message,
+  startDate,
+  priceOption
+}: {
+  to: string
+  hostName: string
+  listingTitle: string
+  renterName: string
+  renterEmail: string
+  renterPhone?: string
+  message: string
+  startDate?: string
+  priceOption?: string
+}) {
+  const detailsHtml = `
+    <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #E5E7EB;">
+      <p style="margin: 0; color: #374151;"><strong>From:</strong> ${renterName} (<a href="mailto:${renterEmail}" style="color: #0D9488; text-decoration: none;">${renterEmail}</a>)</p>
+      ${renterPhone ? `<p style="margin: 8px 0 0; color: #374151;"><strong>Phone:</strong> ${renterPhone}</p>` : ''}
+      ${startDate ? `<p style="margin: 8px 0 0; color: #374151;"><strong>Desired Start Date:</strong> ${startDate}</p>` : ''}
+      ${priceOption ? `<p style="margin: 8px 0 0; color: #374151;"><strong>Selected Pricing Tier:</strong> ${priceOption}</p>` : ''}
+    </div>
+  `
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: renterEmail,
+    subject: `New Inquiry: ${listingTitle} — LinkMedicalSpaces`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+        <div style="background: linear-gradient(135deg, #0D9488, #0F766E); padding: 40px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; tracking-tight: -0.025em;">New Inquiry Received</h1>
+          <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">Someone is interested in your listing</p>
+        </div>
+        <div style="background: #fff; padding: 40px;">
+          <p style="color: #111827; font-size: 16px; font-weight: 600;">Hi ${hostName || 'Space Owner'},</p>
+          <p style="color: #4B5563; line-height: 1.6; font-size: 14px;">
+            A prospective tenant has sent you an inquiry regarding your medical space listing <strong style="color: #111827;">${listingTitle}</strong> on LinkMedicalSpaces.
+          </p>
+          
+          ${detailsHtml}
+
+          <div style="background: #F9FAFB; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #0D9488; border-top: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB;">
+            <p style="margin: 0; color: #1F2937; font-style: italic; line-height: 1.6; font-size: 14px;">
+              "${message}"
+            </p>
+          </div>
+
+          <p style="color: #6B7280; line-height: 1.6; font-size: 14px; margin-top: 24px;">
+            You can reply directly to this email to start chatting, or call them using the details above.
+          </p>
+
+          <div style="text-align: center; margin-top: 32px; border-top: 1px solid #E5E7EB; padding-top: 24px;">
+            <p style="font-size: 11px; color: #9CA3AF; margin: 0;">
+              © ${new Date().getFullYear()} LinkMedicalSpaces. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export default resend
 
