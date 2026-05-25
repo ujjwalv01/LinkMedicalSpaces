@@ -33,16 +33,88 @@ export async function GET(req: NextRequest) {
       where.status = 'PUBLISHED'
     }
 
+    const andConditions: any[] = []
+
     if (query) {
-      where.OR = [
-        { title: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { city: { contains: query, mode: 'insensitive' } },
-      ]
+      andConditions.push({
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { city: { contains: query, mode: 'insensitive' } },
+        ]
+      })
     }
-    if (city) where.city = { contains: city, mode: 'insensitive' }
-    if (state) where.state = state
-    if (spaceType) where.spaceType = spaceType
+
+    if (city) {
+      andConditions.push({ city: { contains: city, mode: 'insensitive' } })
+    }
+    if (state) {
+      andConditions.push({ state })
+    }
+    if (spaceType) {
+      andConditions.push({ spaceType })
+    }
+
+    // Latitude / Longitude / Radius bounding box filter
+    const lat = searchParams.get('lat')
+    const lng = searchParams.get('lng')
+    const radius = searchParams.get('radius')
+    if (lat && lng) {
+      const latVal = parseFloat(lat)
+      const lngVal = parseFloat(lng)
+      const radiusVal = parseFloat(radius || '50') // radius in km
+
+      if (!isNaN(latVal) && !isNaN(lngVal) && !isNaN(radiusVal)) {
+        const latDelta = radiusVal / 111
+        const cosLat = Math.cos(latVal * Math.PI / 180)
+        const lngDelta = radiusVal / (111 * (Math.abs(cosLat) > 0.001 ? cosLat : 0.001))
+
+        andConditions.push({
+          latitude: {
+            gte: latVal - latDelta,
+            lte: latVal + latDelta,
+          },
+          longitude: {
+            gte: lngVal - lngDelta,
+            lte: lngVal + lngDelta,
+          },
+        })
+      }
+    }
+
+    // Price range filters (matches if any set price falls inside range)
+    const minPriceStr = searchParams.get('minPrice')
+    const maxPriceStr = searchParams.get('maxPrice')
+    const minPrice = minPriceStr ? parseFloat(minPriceStr) : null
+    const maxPrice = maxPriceStr ? parseFloat(maxPriceStr) : null
+
+    if (minPrice !== null || maxPrice !== null) {
+      const priceOrs: any[] = []
+      
+      // Hourly pricing condition
+      const hourlyCond: any = {}
+      if (minPrice !== null) hourlyCond.gte = minPrice
+      if (maxPrice !== null) hourlyCond.lte = maxPrice
+      priceOrs.push({ pricePerHour: hourlyCond })
+
+      // Daily pricing condition
+      const dailyCond: any = {}
+      if (minPrice !== null) dailyCond.gte = minPrice
+      if (maxPrice !== null) dailyCond.lte = maxPrice
+      priceOrs.push({ pricePerDay: dailyCond })
+
+      // Monthly pricing condition
+      const monthlyCond: any = {}
+      if (minPrice !== null) monthlyCond.gte = minPrice
+      if (maxPrice !== null) monthlyCond.lte = maxPrice
+      priceOrs.push({ pricePerMonth: monthlyCond })
+
+      andConditions.push({ OR: priceOrs })
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions
+    }
 
     const orderBy: any =
       sortBy === 'price_asc' ? { pricePerMonth: 'asc' }
