@@ -1,14 +1,27 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MapPin, ArrowRight, Image as ImageIcon } from 'lucide-react'
 
-// TODO: In the future, fetch real listings from Prisma or API:
-// const listings = await prisma.listing.findMany({ where: { status: 'PUBLISHED' }, take: 4 })
-const listings: any[] = [] // Empty for now since there are no listings
-
 export default function AvailableSpacesPlaceholder() {
   const router = useRouter()
+  const [listings, setListings] = useState<any[]>([])
+
+  useEffect(() => {
+    async function fetchListings() {
+      try {
+        const res = await fetch('/api/listings?limit=4')
+        const data = await res.json()
+        if (data.listings) {
+          setListings(data.listings)
+        }
+      } catch (err) {
+        console.error('Failed to fetch listings', err)
+      }
+    }
+    fetchListings()
+  }, [])
 
   // Use real listings if available, otherwise show 4 empty placeholder boxes
   const displayItems = listings.length > 0 ? listings : Array(4).fill(null)
