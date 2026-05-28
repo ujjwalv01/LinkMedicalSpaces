@@ -153,14 +153,14 @@ export default function Home() {
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Location</label>
                 <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-xl px-3 py-3 transition-colors">
                   <MapPin className="w-4.5 h-4.5 text-slate-400" />
-                  <input
-                    ref={autocompleteInputRef}
-                    type="text"
-                    placeholder="Enter city or clinical region..."
+                  <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="bg-transparent text-sm font-semibold outline-none text-slate-800 placeholder-slate-400 w-full"
-                  />
+                    className="bg-transparent text-sm font-semibold outline-none text-slate-800 w-full cursor-pointer appearance-none"
+                  >
+                    <option value="">Select Location</option>
+                    <option value="Orlando, FL">Orlando, FL</option>
+                  </select>
                 </div>
               </div>
 
