@@ -51,6 +51,7 @@ export default function Home() {
   
   // Search parameters
   const [location, setLocation] = useState('')
+  const [otherLocation, setOtherLocation] = useState('')
   const [spaceType, setSpaceType] = useState('')
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
@@ -80,7 +81,7 @@ export default function Home() {
 
           setLat(place.geometry.location.lat())
           setLng(place.geometry.location.lng())
-          setLocation(place.formatted_address || place.name || '')
+          setOtherLocation(place.formatted_address || place.name || '')
         })
       }
     }).catch((err: any) => {
@@ -92,7 +93,8 @@ export default function Home() {
     e.preventDefault()
     const params = new URLSearchParams()
     
-    if (location) params.set('city', location)
+    const finalLocation = location === 'Other' ? otherLocation : location
+    if (finalLocation) params.set('city', finalLocation)
     if (spaceType) params.set('spaceType', spaceType)
     if (lat !== null) params.set('lat', lat.toString())
     if (lng !== null) params.set('lng', lng.toString())
@@ -151,16 +153,32 @@ export default function Home() {
             <form onSubmit={handleSearchSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Location</label>
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-xl px-3 py-3 transition-colors">
-                  <MapPin className="w-4.5 h-4.5 text-slate-400" />
-                  <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="bg-transparent text-sm font-semibold outline-none text-slate-800 w-full cursor-pointer appearance-none"
-                  >
-                    <option value="">Select Location</option>
-                    <option value="Orlando, FL">Orlando, FL</option>
-                  </select>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-xl px-3 py-3 transition-colors">
+                    <MapPin className="w-4.5 h-4.5 text-slate-400" />
+                    <select
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="bg-transparent text-sm font-semibold outline-none text-slate-800 w-full cursor-pointer appearance-none"
+                    >
+                      <option value="">Select Location</option>
+                      <option value="Orlando, FL">Orlando, FL</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  {location === 'Other' && (
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-xl px-3 py-3 transition-colors">
+                      <input
+                        ref={autocompleteInputRef}
+                        type="text"
+                        placeholder="Enter state or province name..."
+                        value={otherLocation}
+                        onChange={(e) => setOtherLocation(e.target.value)}
+                        className="bg-transparent text-sm font-semibold outline-none text-slate-800 placeholder-slate-400 w-full"
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

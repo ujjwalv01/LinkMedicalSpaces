@@ -58,6 +58,7 @@ const uploadWithProgress = (
 const US_STATES = [
   { value: '', label: '- Select -' },
   { value: 'FL', label: 'Florida' },
+  { value: 'Other', label: 'Other' },
 ]
 
 const HEAR_ABOUT_OPTIONS = [
@@ -108,6 +109,7 @@ function AddListingPage() {
   const [streetAddress2, setStreetAddress2] = useState('')
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
+  const [otherState, setOtherState] = useState('')
   const [zipCode, setZipCode] = useState('')
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
@@ -483,7 +485,7 @@ function AddListingPage() {
     if (!draftId) return
 
     // Validate required fields
-    if (!streetAddress || !city || !state || !zipCode) {
+    if (!streetAddress || !city || !state || !zipCode || (state === 'Other' && !otherState)) {
       setSubmitError('Please fill in your complete address.')
       return
     }
@@ -511,7 +513,7 @@ function AddListingPage() {
           rooms: examRooms ? parseInt(examRooms) : 1,
           address: streetAddress,
           city,
-          state,
+          state: state === 'Other' ? otherState : state,
           zipCode,
           country: 'US',
           latitude,
@@ -897,6 +899,16 @@ function AddListingPage() {
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
+            {state === 'Other' && (
+              <input
+                type="text"
+                placeholder="Enter state or province name..."
+                value={otherState}
+                onChange={(e) => setOtherState(e.target.value)}
+                className="w-full px-4 py-3 text-sm font-medium outline-none bg-slate-50 border-t border-slate-200"
+                autoFocus
+              />
+            )}
             <input
               type="text"
               placeholder="Zip Code"
