@@ -179,7 +179,7 @@ export default function Navbar() {
         {/* Right Side: Host trigger & User Dropdown */}
         <div className="hidden md:flex items-center gap-4 flex-shrink-0">
           <button
-            onClick={() => router.push(authStatus === 'authenticated' ? '/add-listing' : '/signup?callbackUrl=/add-listing')}
+            onClick={() => router.push('/list-your-space')}
             className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3.5 rounded-xl hover:bg-slate-50"
           >
             List Your Space
@@ -228,7 +228,7 @@ export default function Navbar() {
                         Dashboard
                       </button>
                       <button
-                        onClick={() => { setIsDropdownOpen(false); router.push('/add-listing') }}
+                        onClick={() => { setIsDropdownOpen(false); router.push('/list-your-space') }}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                       >
                         <PlusCircle className="w-4 h-4 text-slate-400" />
@@ -381,7 +381,7 @@ export default function Navbar() {
                 )}
 
                 <button
-                  onClick={() => { setIsMobileMenuOpen(false); router.push(authStatus === 'authenticated' ? '/add-listing' : '/signup?callbackUrl=/add-listing') }}
+                  onClick={() => { setIsMobileMenuOpen(false); router.push('/list-your-space') }}
                   className="w-full text-left font-bold text-slate-700 hover:text-teal-600 text-sm py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   List Your Space

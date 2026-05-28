@@ -3,63 +3,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Loader } from '@googlemaps/js-api-loader'
 import { useDropzone } from 'react-dropzone'
 import imageCompression from 'browser-image-compression'
 import {
-  Stethoscope,
-  Building,
-  Activity,
-  Smile,
-  Scan,
-  FlaskConical,
-  ClipboardList,
-  MoreHorizontal,
-  Plus,
-  Minus,
-  Check,
-  Clock,
   MapPin,
-  Search,
-  ArrowLeft,
-  ArrowRight,
   Loader2,
-  X,
-  Camera,
-  Video,
   UploadCloud,
   Trash2,
   AlertCircle,
-  HelpCircle,
-  Eye,
-  RefreshCw,
-  VideoOff,
+  Plus,
+  Check,
+  ChevronDown,
 } from 'lucide-react'
-
-// Space type categories
-const SPACE_TYPES = [
-  { id: 'CLINIC_ROOM', label: 'Clinic Room', icon: Activity, description: 'General practice exam rooms' },
-  { id: 'OPERATION_THEATRE', label: 'Operation Theatre', icon: FlaskConical, description: 'Surgical suites & procedure rooms' },
-  { id: 'CONSULTATION_ROOM', label: 'Consultation Room', icon: ClipboardList, description: 'Doctor offices & consultation spaces' },
-  { id: 'DENTAL_CHAIR', label: 'Dental Chair', icon: Smile, description: 'Equipped dental operatories' },
-  { id: 'IMAGING_SUITE', label: 'Imaging Suite', icon: Scan, description: 'X-Ray, MRI, or Ultrasound rooms' },
-  { id: 'LAB_SPACE', label: 'Lab Space', icon: Building, description: 'Diagnostics or research laboratory space' },
-  { id: 'OTHER', label: 'Other Space', icon: MoreHorizontal, description: 'Medical spas or unique wellness spaces' },
-]
-
-// Common medical amenities
-const AMENITIES_LIST = [
-  { id: 'WiFi', label: 'High-Speed WiFi' },
-  { id: 'Parking', label: 'Private Parking' },
-  { id: 'Reception', label: 'Reception Desk' },
-  { id: 'Waiting Area', label: 'Waiting Room' },
-  { id: 'Medical Equipment', label: 'Basic Medical Equipment' },
-  { id: 'Sterilization Unit', label: 'Sterilization Station' },
-  { id: 'Wheelchair Access', label: 'ADA Wheelchair Accessible' },
-  { id: 'Emergency Exit', label: 'Emergency Exits & Lighting' },
-  { id: 'CCTV', label: '24/7 Security CCTV' },
-]
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 // XHR upload helper for progress tracking
 const uploadWithProgress = (
@@ -96,295 +54,204 @@ const uploadWithProgress = (
   })
 }
 
+// US States list
+const US_STATES = [
+  { value: '', label: '- Select -' },
+  { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' }, { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' }, { value: 'CA', label: 'California' }, { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' }, { value: 'DE', label: 'Delaware' }, { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' }, { value: 'HI', label: 'Hawaii' }, { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' }, { value: 'IN', label: 'Indiana' }, { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' }, { value: 'KY', label: 'Kentucky' }, { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' }, { value: 'MD', label: 'Maryland' }, { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' }, { value: 'MN', label: 'Minnesota' }, { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' }, { value: 'MT', label: 'Montana' }, { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' }, { value: 'NH', label: 'New Hampshire' }, { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' }, { value: 'NY', label: 'New York' }, { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' }, { value: 'OH', label: 'Ohio' }, { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' }, { value: 'PA', label: 'Pennsylvania' }, { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' }, { value: 'SD', label: 'South Dakota' }, { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' }, { value: 'UT', label: 'Utah' }, { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' }, { value: 'WA', label: 'Washington' }, { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' },
+]
+
+const HEAR_ABOUT_OPTIONS = [
+  '- Select -',
+  'Google Search',
+  'Social Media',
+  'Referral from a colleague',
+  'Medical conference or event',
+  'Email newsletter',
+  'Other',
+]
+
+const SUBLEASE_INSPIRATIONS = [
+  "It's a new practice and I haven't grown into the entire space",
+  "I'm not utilizing the whole office and I hate waste!",
+  "My office space is expensive and I'd like help to offset some of that cost",
+  'Private practice margins are shrinking and I want to run lean',
+  "I'm cutting back and don't need all this space anymore",
+  "Something else we haven't thought of",
+]
+
 export default function AddListingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const region = searchParams.get('region') || 'orlando'
 
-  // State Management
-  const [currentStep, setCurrentStep] = useState(1)
+  // Draft state
   const [draftId, setDraftId] = useState<string | null>(null)
-  const [recoveryDraft, setRecoveryDraft] = useState<any | null>(null)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  
-  // Step 1: Space Type
-  const [selectedSpaceType, setSelectedSpaceType] = useState<string | null>(null)
-  
-  // Step 2: Space Details
-  const [title, setTitle] = useState('')
-  const [rooms, setRooms] = useState(1)
-  const [squareFeet, setSquareFeet] = useState('')
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
-  
-  // Step 3: Location
-  const [address, setAddress] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [loadingDraft, setLoadingDraft] = useState(true)
+
+  // Form fields matching reference screenshots
+  const [entireOffice, setEntireOffice] = useState<boolean | null>(null)
+  const [examRooms, setExamRooms] = useState('')
+  const [availability, setAvailability] = useState<'full_time' | 'part_time' | null>(null)
+  const [leaseType, setLeaseType] = useState<'primary' | 'sublease' | null>(null)
+  const [areasAvailable, setAreasAvailable] = useState<string[]>([])
+  const [amenitiesIncluded, setAmenitiesIncluded] = useState<string[]>([])
+  const [otherAmenities, setOtherAmenities] = useState('')
+  const [constructionType, setConstructionType] = useState<'new' | 'established' | null>(null)
+  const [description, setDescription] = useState('')
+
+  // Address fields
+  const [streetAddress, setStreetAddress] = useState('')
+  const [streetAddress2, setStreetAddress2] = useState('')
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [zipCode, setZipCode] = useState('')
-  const [country, setCountry] = useState('US')
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
 
-  // Step 4: Photo Gallery
-  const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([])
+  // Professionals
+  const [targetProfessionals, setTargetProfessionals] = useState<string[]>([])
+
+  const [featuredImage, setFeaturedImage] = useState<any | null>(null)
+  const [additionalImages, setAdditionalImages] = useState<any[]>([])
+  const [propertyVideo, setPropertyVideo] = useState<any | null>(null)
   const [photoUploadProgress, setPhotoUploadProgress] = useState<Record<string, number>>({})
-  const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({})
-  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null)
 
-  // Step 5: Video
-  const [uploadedVideo, setUploadedVideo] = useState<any | null>(null)
-  const [videoUploadProgress, setVideoUploadProgress] = useState<number | null>(null)
-  const [videoError, setVideoError] = useState<string | null>(null)
-  
-  // Webcam Recording States
-  const [isRecordingMode, setIsRecordingMode] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null)
-  const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
-  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  // Pricing
+  const [monthlyRent, setMonthlyRent] = useState('')
 
-  // Step 6: Description
-  const [description, setDescription] = useState('')
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  // We're curious
+  const [hearAboutUs, setHearAboutUs] = useState('')
+  const [subleaseInspirations, setSubleaseInspirations] = useState<string[]>([])
 
-  // Step 7: Pricing + Availability
-  const [pricePerHour, setPricePerHour] = useState('')
-  const [pricePerDay, setPricePerDay] = useState('')
-  const [pricePerMonth, setPricePerMonth] = useState('')
-  const [availabilityHours, setAvailabilityHours] = useState<Record<string, { open: string; close: string }>>({})
+  // Relationship
+  const [relationship, setRelationship] = useState<'owner' | 'broker' | null>(null)
 
-  // Publish Success States
-  const [publishing, setPublishing] = useState(false)
-  const [publishSuccess, setPublishSuccess] = useState(false)
-  const [publishedListingSlug, setPublishedListingSlug] = useState<string | null>(null)
+  // Contact
+  const [contactMethods, setContactMethods] = useState<string[]>([])
+  const [contactName, setContactName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
 
-  // Loading States
-  const [loadingDraft, setLoadingDraft] = useState(true)
-  const [savingDraft, setSavingDraft] = useState(false)
+  // Brand Ambassador
+  const [brandAmbassador, setBrandAmbassador] = useState<boolean | null>(null)
+
+  // Attestation
+  const [attestation1, setAttestation1] = useState(false)
+  const [attestation2, setAttestation2] = useState(false)
+  const [attestation3, setAttestation3] = useState(false)
+
+  // Electronic Signature
+  const [signatureName, setSignatureName] = useState('')
+
+  // Google Maps
   const [mapsLoaded, setMapsLoaded] = useState(false)
-
-  // Refs
   const mapRef = useRef<HTMLDivElement>(null)
   const autocompleteInputRef = useRef<HTMLInputElement>(null)
-  const mapInstanceRef = useRef<any>(null)
-  const markerInstanceRef = useRef<any>(null)
-  const webcamVideoRef = useRef<HTMLVideoElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const recordedChunksRef = useRef<Blob[]>([])
 
-  // Redirect if unauthenticated
+  // Redirect if unauthenticated (bypassed for viewing workflow)
+  /*
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/signin')
     }
   }, [status, router])
+  */
 
-  const handleContinueDraft = (draft: any) => {
-    setLoadingDraft(true)
-    setDraftId(draft.id)
-    setSelectedSpaceType(draft.spaceType)
-    setTitle(draft.title || '')
-    setRooms(draft.rooms || 1)
-    setSquareFeet(draft.squareFeet ? draft.squareFeet.toString() : '')
-    
-    let parsedAmenities = []
-    try {
-      parsedAmenities = typeof draft.amenities === 'string' 
-        ? JSON.parse(draft.amenities) 
-        : draft.amenities || []
-    } catch (_) {
-      parsedAmenities = []
-    }
-    setSelectedAmenities(parsedAmenities)
-
-    setAddress(draft.address || '')
-    setCity(draft.city || '')
-    setState(draft.state || '')
-    setZipCode(draft.zipCode || '')
-    setCountry(draft.country || 'US')
-    setLatitude(draft.latitude)
-    setLongitude(draft.longitude)
-
-    setDescription(draft.description || '')
-    setPricePerHour(draft.pricePerHour ? draft.pricePerHour.toString() : '')
-    setPricePerDay(draft.pricePerDay ? draft.pricePerDay.toString() : '')
-    setPricePerMonth(draft.pricePerMonth ? draft.pricePerMonth.toString() : '')
-
-    let parsedHours = {}
-    try {
-      parsedHours = typeof draft.availabilityHours === 'string'
-        ? JSON.parse(draft.availabilityHours)
-        : draft.availabilityHours || {}
-    } catch (_) {
-      parsedHours = {}
-    }
-    setAvailabilityHours(parsedHours)
-
-    // Load related media
-    const media = draft.media || []
-    const photos = media.filter((m: any) => m.type === 'IMAGE')
-    const video = media.find((m: any) => m.type === 'VIDEO') || null
-    
-    setUploadedPhotos(photos)
-    setUploadedVideo(video)
-
-    // Determine step restoration
-    if (!draft.spaceType) {
-      setCurrentStep(1)
-    } else if (!draft.title || !draft.squareFeet) {
-      setCurrentStep(2)
-    } else if (!draft.address) {
-      setCurrentStep(3)
-    } else if (photos.length < 3) {
-      setCurrentStep(4)
-    } else if (!draft.description || draft.description.length < 100) {
-      setCurrentStep(6)
-    } else {
-      setCurrentStep(7)
-    }
-
-    setRecoveryDraft(null)
-    setLoadingDraft(false)
-  }
-
-  const handleDiscardDraft = async (draft: any) => {
-    setLoadingDraft(true)
-    try {
-      await fetch(`/api/listings/${draft.id}`, { method: 'DELETE' })
-      
-      // Reset form states
-      setDraftId(null)
-      setSelectedSpaceType(null)
-      setTitle('')
-      setRooms(1)
-      setSquareFeet('')
-      setSelectedAmenities([])
-      setAddress('')
-      setCity('')
-      setState('')
-      setZipCode('')
-      setLatitude(null)
-      setLongitude(null)
-      setUploadedPhotos([])
-      setUploadedVideo(null)
-      setDescription('')
-      setPricePerHour('')
-      setPricePerDay('')
-      setPricePerMonth('')
-      setAvailabilityHours({})
-      
-      setCurrentStep(1)
-    } catch (err) {
-      console.error('Failed to discard draft:', err)
-    } finally {
-      setRecoveryDraft(null)
-      setLoadingDraft(false)
-    }
-  }
-
-  // Check for existing draft on mount
+  // Pre-fill contact info from session
   useEffect(() => {
+    if (session?.user) {
+      if (session.user.name) setContactName(session.user.name)
+      if (session.user.email) setContactEmail(session.user.email)
+    }
+  }, [session])
+
+  // Create draft on mount
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setLoadingDraft(false)
+      return
+    }
     if (status !== 'authenticated') return
 
-    const checkDraft = async () => {
+    const initDraft = async () => {
       try {
-        const queryDraftId = searchParams.get('draftId')
-        const url = queryDraftId ? `/api/listings/draft?id=${queryDraftId}` : '/api/listings/draft'
-        
-        const res = await fetch(url)
-        const draft = await res.json()
-        
-        if (res.ok && draft) {
-          setRecoveryDraft(draft)
-        } else {
-          setLoadingDraft(false)
+        // Check for existing draft
+        const checkRes = await fetch('/api/listings/draft')
+        if (checkRes.ok) {
+          const draft = await checkRes.json()
+          if (draft?.id) {
+            setDraftId(draft.id)
+            // Restore fields from draft
+            setDescription(draft.description || '')
+            setStreetAddress(draft.address || '')
+            setCity(draft.city || '')
+            setState(draft.state || '')
+            setZipCode(draft.zipCode || '')
+            setLatitude(draft.latitude)
+            setLongitude(draft.longitude)
+            setMonthlyRent(draft.pricePerMonth ? draft.pricePerMonth.toString() : '')
+
+            // Load media
+            const media = draft.media || []
+            const photos = media.filter((m: any) => m.type === 'IMAGE')
+            const videos = media.filter((m: any) => m.type === 'VIDEO')
+            if (photos.length > 0) {
+              setFeaturedImage(photos[0])
+              setAdditionalImages(photos.slice(1))
+            }
+            if (videos.length > 0) {
+              setPropertyVideo(videos[0])
+            }
+
+            setLoadingDraft(false)
+            return
+          }
+        }
+
+        // Create new draft
+        const res = await fetch('/api/listings/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spaceType: 'EXAM_ROOM' }),
+        })
+        const data = await res.json()
+        if (res.ok && data?.id) {
+          setDraftId(data.id)
         }
       } catch (err) {
-        console.error('Failed to check draft:', err)
+        console.error('Failed to init draft:', err)
+      } finally {
         setLoadingDraft(false)
       }
     }
 
-    checkDraft()
-  }, [status, searchParams])
+    initDraft()
+  }, [status])
 
-  // Auto-save every 30 seconds
+  // Google Maps
   useEffect(() => {
-    if (!draftId || currentStep === 7) return
-
-    const interval = setInterval(async () => {
-      setAutoSaveStatus('saving')
-      try {
-        const res = await fetch('/api/listings/draft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: draftId,
-            spaceType: selectedSpaceType,
-            title: title || undefined,
-            rooms: rooms || 1,
-            squareFeet: squareFeet ? parseFloat(squareFeet) : undefined,
-            amenities: selectedAmenities,
-            address: address || undefined,
-            city: city || undefined,
-            state: state || undefined,
-            zipCode: zipCode || undefined,
-            country,
-            latitude,
-            longitude,
-            description: description || undefined,
-            pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
-            pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
-            pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
-            availabilityHours,
-          }),
-        })
-
-        if (res.ok) {
-          setAutoSaveStatus('saved')
-          setTimeout(() => setAutoSaveStatus('idle'), 3000)
-        } else {
-          setAutoSaveStatus('idle')
-        }
-      } catch (err) {
-        console.error('Auto-save failed:', err)
-        setAutoSaveStatus('idle')
-      }
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [
-    draftId,
-    currentStep,
-    selectedSpaceType,
-    title,
-    rooms,
-    squareFeet,
-    selectedAmenities,
-    address,
-    city,
-    state,
-    zipCode,
-    country,
-    latitude,
-    longitude,
-    description,
-    pricePerHour,
-    pricePerDay,
-    pricePerMonth,
-    availabilityHours,
-  ])
-
-  // Google Maps Integration (Step 3)
-  useEffect(() => {
-    if (currentStep !== 3) return
-
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
-    if (!apiKey || apiKey === 'your-google-maps-api-key') {
-      setMapsLoaded(false)
-      return
-    }
+    if (!apiKey || apiKey === 'your-google-maps-api-key') return
 
     const loader = new Loader({
       apiKey,
@@ -394,25 +261,22 @@ export default function AddListingPage() {
 
     loader.load().then((google: any) => {
       setMapsLoaded(true)
-      
-      const defaultLatLng = { lat: latitude || 28.6139, lng: longitude || 77.2090 }
 
       if (mapRef.current) {
+        const defaultLatLng = { lat: latitude || 28.5383, lng: longitude || -81.3792 }
         const map = new google.maps.Map(mapRef.current, {
           center: defaultLatLng,
-          zoom: latitude ? 15 : 12,
+          zoom: latitude ? 15 : 10,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
         })
-        mapInstanceRef.current = map
 
         const marker = new google.maps.Marker({
           position: defaultLatLng,
-          map: map,
+          map,
           draggable: true,
         })
-        markerInstanceRef.current = marker
 
         if (autocompleteInputRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, {
@@ -425,1633 +289,1024 @@ export default function AddListingPage() {
 
             const newLat = place.geometry.location.lat()
             const newLng = place.geometry.location.lng()
-
             setLatitude(newLat)
             setLongitude(newLng)
-            
             map.setCenter({ lat: newLat, lng: newLng })
             map.setZoom(16)
             marker.setPosition({ lat: newLat, lng: newLng })
 
-            let streetAddress = ''
+            const addressComponents = place.address_components || []
+            let parsedStreet = ''
             let parsedCity = ''
             let parsedState = ''
             let parsedZip = ''
-            let parsedCountry = 'US'
-
-            const addressComponents = place.address_components || []
-            addressComponents.forEach((component: any) => {
-              const types = component.types
-              if (types.includes('street_number')) {
-                streetAddress = component.long_name + ' ' + streetAddress
-              }
-              if (types.includes('route')) {
-                streetAddress += component.long_name
-              }
-              if (types.includes('locality')) {
-                parsedCity = component.long_name
-              }
-              if (types.includes('administrative_area_level_1')) {
-                parsedState = component.short_name
-              }
-              if (types.includes('postal_code')) {
-                parsedZip = component.long_name
-              }
-              if (types.includes('country')) {
-                parsedCountry = component.short_name
-              }
+            addressComponents.forEach((comp: any) => {
+              const types = comp.types
+              if (types.includes('street_number')) parsedStreet = comp.long_name + ' '
+              if (types.includes('route')) parsedStreet += comp.long_name
+              if (types.includes('locality')) parsedCity = comp.long_name
+              if (types.includes('administrative_area_level_1')) parsedState = comp.short_name
+              if (types.includes('postal_code')) parsedZip = comp.long_name
             })
 
-            setAddress(streetAddress || place.formatted_address || '')
+            setStreetAddress(parsedStreet || place.formatted_address || '')
             setCity(parsedCity)
             setState(parsedState)
             setZipCode(parsedZip)
-            setCountry(parsedCountry)
           })
         }
 
-        map.addListener('click', (e: any) => {
-          const clickedLat = e.latLng.lat()
-          const clickedLng = e.latLng.lng()
-          setLatitude(clickedLat)
-          setLongitude(clickedLng)
-          marker.setPosition({ lat: clickedLat, lng: clickedLng })
-        })
-
         marker.addListener('dragend', () => {
-          const position = marker.getPosition()
-          if (position) {
-            setLatitude(position.lat())
-            setLongitude(position.lng())
+          const pos = marker.getPosition()
+          if (pos) {
+            setLatitude(pos.lat())
+            setLongitude(pos.lng())
           }
         })
       }
-    }).catch((err: any) => console.error('Failed to load Google Maps script', err))
-  }, [currentStep, latitude, longitude])
+    }).catch((err: any) => console.error('Maps failed:', err))
+  }, [])
 
-  // Save progress draft to DB
-  const saveDraftProgress = async (nextStepIndex?: number) => {
-    setSavingDraft(true)
+  // Image upload handlers
+  const handleFeaturedImageUpload = async (files: File[]) => {
+    if (!draftId || files.length === 0) return
+    const file = files[0]
+    const key = `featured-${Date.now()}`
+    setPhotoUploadProgress((p) => ({ ...p, [key]: 5 }))
+
     try {
-      const res = await fetch('/api/listings/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: draftId || undefined,
-          spaceType: selectedSpaceType,
-          title: title || undefined,
-          rooms: rooms || 1,
-          squareFeet: squareFeet ? parseFloat(squareFeet) : undefined,
-          amenities: selectedAmenities,
-          address: address || undefined,
-          city: city || undefined,
-          state: state || undefined,
-          zipCode: zipCode || undefined,
-          country,
-          latitude,
-          longitude,
-          description: description || undefined,
-          pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
-          pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
-          pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
-          availabilityHours,
-        }),
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.8,
       })
+      const formData = new FormData()
+      formData.append('file', compressed, file.name)
+      formData.append('listingId', draftId)
 
-      const data = await res.json()
-      if (res.ok && data) {
-        setDraftId(data.id)
-        if (nextStepIndex) {
-          setCurrentStep(nextStepIndex)
-        } else {
-          router.push('/dashboard')
-        }
-      } else {
-        alert(data.error || 'Failed to save draft progress')
-      }
-    } catch (err) {
-      alert('Failed to save draft progress')
+      const data = await uploadWithProgress('/api/upload/image', formData, (p) => {
+        setPhotoUploadProgress((prev) => ({ ...prev, [key]: p }))
+      })
+      setFeaturedImage(data.media)
+    } catch (err: any) {
+      console.error('Featured image upload failed:', err)
     } finally {
-      setSavingDraft(false)
+      setPhotoUploadProgress((p) => { const c = { ...p }; delete c[key]; return c })
     }
   }
 
-  // React-dropzone config for images (Step 4)
-  const onDropImages = async (acceptedFiles: File[]) => {
+  const handleAdditionalImageUpload = async (files: File[]) => {
     if (!draftId) return
-    
-    // Check constraints
-    if (uploadedPhotos.length + acceptedFiles.length > 20) {
-      alert('Maximum of 20 photos allowed.')
-      return
-    }
 
-    acceptedFiles.forEach(async (file) => {
-      // Early hints: immediate preview object url
-      const previewUrl = URL.createObjectURL(file)
-      const placeholderPhoto = {
-        id: `temp-${Date.now()}-${Math.random()}`,
-        originalUrl: previewUrl,
-        caption: '',
-        status: 'uploading',
-        name: file.name,
-      }
-
-      setUploadedPhotos((prev) => [...prev, placeholderPhoto])
-      setPhotoUploadProgress((prev) => ({ ...prev, [file.name]: 5 }))
+    for (const file of files) {
+      const key = `additional-${Date.now()}-${Math.random()}`
+      setPhotoUploadProgress((p) => ({ ...p, [key]: 5 }))
 
       try {
-        // Compress client-side
-        const compressionOptions = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          initialQuality: 0.8,
-        }
-        
-        const compressedFile = await imageCompression(file, compressionOptions)
-        
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.8,
+        })
         const formData = new FormData()
-        formData.append('file', compressedFile, file.name)
+        formData.append('file', compressed, file.name)
         formData.append('listingId', draftId)
 
-        // Upload to Cloudinary
-        const responseData = await uploadWithProgress(
-          '/api/upload/image',
-          formData,
-          (progress) => {
-            setPhotoUploadProgress((prev) => ({ ...prev, [file.name]: progress }))
-          }
-        )
-
-        // Replace placeholder with saved DB record
-        setUploadedPhotos((prev) =>
-          prev.map((photo) => (photo.name === file.name ? responseData.media : photo))
-        )
-      } catch (err: any) {
-        setPhotoErrors((prev) => ({ ...prev, [file.name]: err.message || 'Upload failed' }))
-        setUploadedPhotos((prev) => prev.filter((photo) => photo.name !== file.name))
-      } finally {
-        setPhotoUploadProgress((prev) => {
-          const copy = { ...prev }
-          delete copy[file.name]
-          return copy
+        const data = await uploadWithProgress('/api/upload/image', formData, (p) => {
+          setPhotoUploadProgress((prev) => ({ ...prev, [key]: p }))
         })
+        setAdditionalImages((prev) => [...prev, data.media])
+      } catch (err: any) {
+        console.error('Additional image upload failed:', err)
+      } finally {
+        setPhotoUploadProgress((p) => { const c = { ...p }; delete c[key]; return c })
       }
-    })
-  }
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: onDropImages,
-    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
-  })
-
-  // Delete image from DB & Cloudinary
-  const handleDeletePhoto = async (photoId: string, url: string) => {
-    // Extract public ID from Cloudinary URL
-    const match = url.match(/\/v\d+\/([^\s]+)\.[a-z]+$/i)
-    const publicId = match ? match[1] : null
-
-    if (!publicId) return
-
-    try {
-      setUploadedPhotos((prev) => prev.filter((p) => p.id !== photoId))
-      await fetch(`/api/upload/${publicId}`, { method: 'DELETE' })
-    } catch (err) {
-      console.error('Failed to delete photo', err)
     }
   }
 
-  // Update photo caption on blur
-  const handleUpdateCaption = async (photoId: string, caption: string) => {
+  const handleCaptionUpdate = async (imageId: string, caption: string) => {
     try {
-      setUploadedPhotos((prev) =>
-        prev.map((p) => (p.id === photoId ? { ...p, caption } : p))
-      )
-      await fetch(`/api/listings/media/${photoId}`, {
+      await fetch(`/api/listings/media/${imageId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caption }),
       })
     } catch (err) {
-      console.error('Failed to update caption', err)
+      console.error('Failed to update caption:', err)
     }
   }
 
-  // HTML5 Drag-and-drop sorting
-  const handlePhotoDragStart = (index: number) => {
-    setDraggedPhotoIndex(index)
-  }
-
-  const handlePhotoDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-  }
-
-  const handlePhotoDrop = async (e: React.DragEvent, targetIndex: number) => {
-    if (draggedPhotoIndex === null || draggedPhotoIndex === targetIndex) return
-
-    const reordered = [...uploadedPhotos]
-    const [moved] = reordered.splice(draggedPhotoIndex, 1)
-    reordered.splice(targetIndex, 0, moved)
-
-    const withNewOrders = reordered.map((photo, idx) => ({ ...photo, order: idx }))
-    setUploadedPhotos(withNewOrders)
-    setDraggedPhotoIndex(null)
-
-    // Save order in DB
-    try {
-      await Promise.all(
-        withNewOrders.map((photo) =>
-          fetch(`/api/listings/media/${photo.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order: photo.order }),
-          })
-        )
-      )
-    } catch (err) {
-      console.error('Failed to save media order changes', err)
-    }
-  }
-
-  // Step 5: Video Capture & Upload
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !draftId) return
-
-    setVideoUploadProgress(5)
-    setVideoError(null)
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('listingId', draftId)
-
-    try {
-      const responseData = await uploadWithProgress(
-        '/api/upload/video',
-        formData,
-        (progress) => setVideoUploadProgress(progress)
-      )
-      setUploadedVideo(responseData.media)
-    } catch (err: any) {
-      setVideoError(err.message || 'Video upload failed')
-    } finally {
-      setVideoUploadProgress(null)
-    }
-  }
-
-  const handleDeleteVideo = async () => {
-    if (!uploadedVideo) return
-    const match = uploadedVideo.originalUrl.match(/\/v\d+\/([^\s]+)\.[a-z0-9]+$/i)
+  const handleDeleteImage = async (imageId: string, url: string, type: 'featured' | 'additional' | 'video') => {
+    const match = url.match(/\/v\d+\/([^\s]+)\.[a-z0-9]+$/i)
     const publicId = match ? match[1] : null
-
     if (!publicId) return
 
     try {
-      setUploadedVideo(null)
+      if (type === 'featured') setFeaturedImage(null)
+      else if (type === 'video') setPropertyVideo(null)
+      else setAdditionalImages((prev) => prev.filter((p) => p.id !== imageId))
       await fetch(`/api/upload/${publicId}`, { method: 'DELETE' })
     } catch (err) {
-      console.error('Failed to delete video', err)
+      console.error('Failed to delete media:', err)
     }
   }
 
-  // Webcam Recording controls (MediaRecorder API)
-  const startWebcam = async () => {
-    setVideoError(null)
+  const handleVideoUpload = async (files: File[]) => {
+    const file = files[0]
+    if (!file || !draftId) return
+
+    const key = `video-${Date.now()}`
+    setPhotoUploadProgress((p) => ({ ...p, [key]: 5 }))
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
-        audio: true,
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('listingId', draftId)
+
+      const data = await uploadWithProgress('/api/upload/video', formData, (p) => {
+        setPhotoUploadProgress((prev) => ({ ...prev, [key]: p }))
       })
-      setWebcamStream(stream)
-      if (webcamVideoRef.current) {
-        webcamVideoRef.current.srcObject = stream
-      }
-      setIsRecordingMode(true)
-    } catch (err) {
-      setVideoError('Camera access denied. Please allow permissions.')
-    }
-  }
-
-  const stopWebcam = () => {
-    if (webcamStream) {
-      webcamStream.getTracks().forEach((track) => track.stop())
-      setWebcamStream(null)
-    }
-    setIsRecordingMode(false)
-    setIsRecording(false)
-    setRecordingSeconds(0)
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
-  }
-
-  const startRecording = () => {
-    if (!webcamStream) return
-    recordedChunksRef.current = []
-    
-    // Choose support mimeType
-    let options = { mimeType: 'video/webm;codecs=vp9,opus' }
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      options = { mimeType: 'video/webm;codecs=vp8,opus' }
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm' }
-      }
-    }
-
-    try {
-      const recorder = new MediaRecorder(webcamStream, options)
-      mediaRecorderRef.current = recorder
-
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunksRef.current.push(event.data)
-        }
-      }
-
-      recorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/mp4' })
-        setRecordedVideoBlob(blob)
-      }
-
-      recorder.start(10) // slice chunks of 10ms
-      setIsRecording(true)
-
-      // Start timer countdown limit 60s
-      setRecordingSeconds(0)
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => {
-          if (prev >= 60) {
-            handleStopRecording()
-            return 60
-          }
-          return prev + 1
-        })
-      }, 1000)
-    } catch (e) {
-      setVideoError('Failed to initialize webcam recorder.')
-    }
-  }
-
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
-    }
-  }
-
-  const handleUploadRecordedVideo = async () => {
-    if (!recordedVideoBlob || !draftId) return
-
-    setVideoUploadProgress(5)
-    setVideoError(null)
-
-    const file = new File([recordedVideoBlob], 'webcam-record.mp4', { type: 'video/mp4' })
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('listingId', draftId)
-
-    try {
-      const responseData = await uploadWithProgress(
-        '/api/upload/video',
-        formData,
-        (progress) => setVideoUploadProgress(progress)
-      )
-      setUploadedVideo(responseData.media)
-      stopWebcam()
-      setRecordedVideoBlob(null)
+      setPropertyVideo(data.media)
     } catch (err: any) {
-      setVideoError(err.message || 'Recorded video upload failed')
+      console.error('Video upload failed:', err)
     } finally {
-      setVideoUploadProgress(null)
+      setPhotoUploadProgress((p) => { const c = { ...p }; delete c[key]; return c })
     }
   }
 
+  const featuredDropzone = useDropzone({
+    onDrop: handleFeaturedImageUpload,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+    maxFiles: 1,
+  })
+
+  const additionalDropzone = useDropzone({
+    onDrop: handleAdditionalImageUpload,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+  })
+
+  const videoDropzone = useDropzone({
+    onDrop: handleVideoUpload,
+    accept: { 'video/*': ['.mp4', '.mov', '.webm'] },
+    maxFiles: 1,
+  })
+
+  const [generatingDesc, setGeneratingDesc] = useState(false)
   const generateAIDescription = async () => {
-    if (!draftId) return
-    setIsGeneratingDescription(true)
+    if (!streetAddress || !city) {
+      alert('Please fill in your address and city first so we can describe the location!')
+      return
+    }
+    setGeneratingDesc(true)
+    setDescription('')
     try {
-      const res = await fetch('/api/ai/generate-description', {
+      const res = await fetch('/api/generate-description', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: draftId }),
+        body: JSON.stringify({
+          address: streetAddress,
+          city,
+          state,
+          rooms: examRooms,
+          rent: monthlyRent,
+          amenities: amenitiesIncluded,
+          constructionType,
+          targetProfessionals,
+        }),
       })
-      const data = await res.json()
-      if (res.ok && data.description) {
-        setDescription(data.description)
-      } else {
-        alert(data.error || 'Failed to generate AI description')
+      if (!res.ok || !res.body) throw new Error('Failed to generate')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let done = false
+      while (!done) {
+        const { value, done: doneReading } = await reader.read()
+        done = doneReading
+        const chunkValue = decoder.decode(value, { stream: true })
+        setDescription((prev) => prev + chunkValue)
       }
     } catch (err) {
-      alert('Failed to generate AI description')
+      console.error(err)
+      alert('Failed to generate description. Please try again.')
     } finally {
-      setIsGeneratingDescription(false)
+      setGeneratingDesc(false)
     }
   }
 
-  const handlePublishListing = async () => {
+  // Toggle helpers
+  const toggleArrayItem = (arr: string[], item: string, setter: (val: string[]) => void) => {
+    setter(arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item])
+  }
+
+  // Submit
+  const handleSubmit = async () => {
     if (!draftId) return
-    setPublishing(true)
+
+    // Validate required fields
+    if (!streetAddress || !city || !state || !zipCode) {
+      setSubmitError('Please fill in your complete address.')
+      return
+    }
+    if (!attestation1 || !attestation2 || !attestation3) {
+      setSubmitError('Please accept all attestation checkboxes.')
+      return
+    }
+    if (!signatureName.trim()) {
+      setSubmitError('Please provide your electronic signature.')
+      return
+    }
+
+    setSubmitting(true)
+    setSubmitError(null)
+
     try {
-      // First save current pricing states using pricing PUT API
-      const pricingRes = await fetch(`/api/listings/${draftId}/pricing`, {
-        method: 'PUT',
+      // Save draft with all data
+      await fetch('/api/listings/draft', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pricePerHour: pricePerHour ? parseFloat(pricePerHour) : null,
-          pricePerDay: pricePerDay ? parseFloat(pricePerDay) : null,
-          pricePerMonth: pricePerMonth ? parseFloat(pricePerMonth) : null,
-          availabilityHours,
+          id: draftId,
+          spaceType: 'EXAM_ROOM',
+          title: `Medical Space at ${streetAddress}, ${city}`,
+          rooms: examRooms ? parseInt(examRooms) : 1,
+          address: streetAddress,
+          city,
+          state,
+          zipCode,
+          country: 'US',
+          latitude,
+          longitude,
+          description,
+          pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null,
+          amenities: [
+            ...amenitiesIncluded,
+            ...areasAvailable.map((a) => `Area: ${a}`),
+            ...(otherAmenities ? [`Other: ${otherAmenities}`] : []),
+            ...(entireOffice !== null ? [`Entire Office: ${entireOffice ? 'Yes' : 'No'}`] : []),
+            ...(availability ? [`Availability: ${availability}`] : []),
+            ...(leaseType ? [`Lease Type: ${leaseType}`] : []),
+            ...(constructionType ? [`Construction: ${constructionType}`] : []),
+            ...targetProfessionals.map((p) => `Target: ${p}`),
+            ...(relationship ? [`Relationship: ${relationship}`] : []),
+            ...contactMethods.map((m) => `Contact via: ${m}`),
+            ...(hearAboutUs ? [`Heard from: ${hearAboutUs}`] : []),
+            ...subleaseInspirations.map((s) => `Inspiration: ${s}`),
+            ...(brandAmbassador !== null ? [`Brand Ambassador: ${brandAmbassador ? 'Yes' : 'No'}`] : []),
+          ],
+          availabilityHours: {
+            contactName,
+            contactEmail,
+            contactPhone,
+            signatureName,
+            region,
+          },
         }),
       })
 
-      if (!pricingRes.ok) {
-        const errData = await pricingRes.json()
-        alert(errData.error || 'Failed to save pricing details.')
-        setPublishing(false)
-        return
-      }
-
-      // Now call publish PUT API
-      const publishRes = await fetch(`/api/listings/${draftId}/publish`, {
+      // Save pricing
+      await fetch(`/api/listings/${draftId}/pricing`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null,
+        }),
       })
 
+      // Publish
+      const publishRes = await fetch(`/api/listings/${draftId}/publish`, { method: 'PUT' })
       const publishData = await publishRes.json()
+
       if (publishRes.ok && publishData.success) {
-        setPublishedListingSlug(publishData.listing.slug)
-        setPublishSuccess(true)
+        setSubmitSuccess(true)
       } else {
-        alert(publishData.error || 'Failed to publish listing.')
+        setSubmitError(publishData.error || 'Failed to submit listing.')
       }
-    } catch (err) {
-      alert('Failed to publish listing.')
+    } catch (err: any) {
+      setSubmitError(err.message || 'Submission failed.')
     } finally {
-      setPublishing(false)
+      setSubmitting(false)
     }
-  }
-
-  const handleNext = () => {
-    if (currentStep < 7) {
-      saveDraftProgress(currentStep + 1)
-    }
-  }
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  // Amenities checklist toggle
-  const toggleAmenity = (id: string) => {
-    setSelectedAmenities((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
-  }
-
-  const isStepValid = () => {
-    if (currentStep === 1) return !!selectedSpaceType
-    if (currentStep === 2) return title.trim().length >= 5 && squareFeet !== '' && parseFloat(squareFeet) > 0
-    if (currentStep === 3) return address.trim() !== '' && city.trim() !== '' && state.trim() !== '' && zipCode.trim() !== ''
-    if (currentStep === 4) return uploadedPhotos.length >= 3 // Min 3 photos
-    if (currentStep === 5) return true // Optional video step
-    if (currentStep === 6) return description.trim().length >= 100
-    if (currentStep === 7) {
-      const h = pricePerHour ? parseFloat(pricePerHour) : 0
-      const d = pricePerDay ? parseFloat(pricePerDay) : 0
-      const m = pricePerMonth ? parseFloat(pricePerMonth) : 0
-      return h > 0 || d > 0 || m > 0
-    }
-    return false
-  }
-
-  // Timer format helper
-  const formatTimer = (secs: number) => {
-    const min = Math.floor(secs / 60)
-    const sec = secs % 60
-    return `${min}:${sec < 10 ? '0' : ''}${sec}`
   }
 
   if (status === 'loading' || loadingDraft) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-teal-600 animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-teal-600 animate-spin" />
+      </div>
+    )
+  }
+
+  if (submitSuccess) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col font-sans">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-6 shadow-lg">
+            <div className="w-16 h-16 bg-teal-50 border border-teal-200 rounded-full flex items-center justify-center text-teal-600 mx-auto">
+              <Check className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-slate-900">Listing Submitted!</h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Your listing has been submitted successfully. Our team will review it and it will be live on the platform shortly.
+            </p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-between">
-      {/* Draft Recovery Modal */}
-      {recoveryDraft && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 p-6 space-y-6"
-          >
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto text-teal-600">
-                <Clock className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800">Continue Unfinished Listing?</h3>
-              <p className="text-slate-500 text-xs leading-relaxed">
-                You have an unfinished space listing draft. Would you like to continue where you left off or start fresh?
-              </p>
-            </div>
+    <div className="min-h-screen bg-white flex flex-col font-sans">
+      <Navbar />
 
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                {recoveryDraft.media?.[0]?.originalUrl ? (
-                  <img src={recoveryDraft.media[0].originalUrl} alt="Draft preview" className="w-full h-full object-cover" />
-                ) : (
-                  <Building className="w-5 h-5 text-slate-400" />
-                )}
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-xs font-bold text-slate-800 truncate">{recoveryDraft.title || 'Unnamed Draft Space'}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 capitalize">Type: {recoveryDraft.spaceType ? recoveryDraft.spaceType.replace(/_/g, ' ').toLowerCase() : 'Not Set'}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => handleDiscardDraft(recoveryDraft)}
-                className="flex-1 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 py-3 rounded-xl text-xs font-semibold transition-all"
-              >
-                Start Fresh
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleContinueDraft(recoveryDraft)}
-                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg shadow-teal-600/10 active:scale-97 transition-all flex items-center justify-center gap-1"
-              >
-                Continue Draft
-              </button>
-            </div>
-          </motion.div>
+      {/* Header */}
+      <section className="bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 pt-10 pb-6 px-6">
+        <div className="max-w-3xl mx-auto text-center space-y-3">
+          <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-teal-600">List Your Space</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            It's easy to get started on Link Medical Spaces
+          </h1>
+          <p className="text-slate-500 text-sm">Share some basic info, choose a listing plan and publish your space.</p>
         </div>
-      )}
+      </section>
 
-      {/* Top Progress bar */}
-      <header className="bg-white border-b border-slate-100 py-4 px-6 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 text-sm">Step {currentStep} of 7</span>
-            <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-teal-600 rounded-full transition-all duration-300"
-                style={{ width: `${(currentStep / 7) * 100}%` }}
+      {/* Form Body */}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-8 space-y-10">
+
+        {/* Region Selector (locked) */}
+        <div className="relative">
+          <select
+            value={region}
+            disabled
+            className="w-full sm:w-80 appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-none cursor-not-allowed opacity-80"
+          >
+            <option value="orlando">Orlando Area</option>
+            <option value="other">Other</option>
+          </select>
+          <ChevronDown className="absolute right-4 sm:left-72 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+
+        {/* Where is your space located? */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">Where is your space located?</h2>
+
+          {/* Map container */}
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+            <div ref={mapRef} className="w-full h-52" />
+            {!mapsLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                <p className="text-xs text-slate-500 font-medium text-center px-6">
+                  We could not connect to the Google Maps autocomplete service, but you can add an address manually.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <input
+              ref={autocompleteInputRef}
+              type="text"
+              placeholder="Enter address"
+              className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl text-sm font-medium outline-none transition-colors"
+            />
+          </div>
+        </section>
+
+        {/* Tell us more about your space */}
+        <section className="space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-slate-900">Tell us more about your space</h2>
+            <p className="text-xs text-slate-500">This information will help you find right match for your space</p>
+          </div>
+
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-6">
+
+            {/* Entire office? */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Is your entire office available for leasing?</label>
+              <div className="flex gap-2">
+                {['Yes', 'No'].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setEntireOffice(opt === 'Yes')}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      entireOffice === (opt === 'Yes')
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Exam rooms count */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">How many exam rooms are available to sublet or lease?</label>
+              <div className="relative">
+                <select
+                  value={examRooms}
+                  onChange={(e) => setExamRooms(e.target.value)}
+                  className="w-full appearance-none bg-white border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-colors cursor-pointer"
+                >
+                  <option value="">- Select -</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    <option key={n} value={n.toString()}>{n}{n === 10 ? '+' : ''}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Full time or part time? */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Is your space available full time or part-time?</label>
+              <div className="flex gap-2">
+                {[{ v: 'full_time', l: 'Full Time' }, { v: 'part_time', l: 'Part Time' }].map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setAvailability(opt.v as any)}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      availability === opt.v
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lease type */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Is this a primary lease or sublease?</label>
+              <div className="flex gap-2">
+                {[{ v: 'primary', l: 'Primary Lease' }, { v: 'sublease', l: 'Sublease' }].map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setLeaseType(opt.v as any)}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      leaseType === opt.v
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Areas available */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Other than exam rooms, what areas are available for use by lessee?</label>
+              <div className="flex flex-wrap gap-2">
+                {['Waiting Room', 'Restroom', 'Break Room', 'Office', 'Other'].map((area) => (
+                  <button
+                    key={area}
+                    type="button"
+                    onClick={() => toggleArrayItem(areasAvailable, area, setAreasAvailable)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      areasAvailable.includes(area)
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${
+                      areasAvailable.includes(area) ? 'bg-white text-slate-800 border-white' : 'border-slate-300'
+                    }`}>
+                      {areasAvailable.includes(area) && <Check className="w-2.5 h-2.5" />}
+                    </span>
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Amenities included */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Amenities included</label>
+              <div className="flex flex-wrap gap-2">
+                {['Utilities', 'Internet', 'Cleaning Services'].map((am) => (
+                  <button
+                    key={am}
+                    type="button"
+                    onClick={() => toggleArrayItem(amenitiesIncluded, am, setAmenitiesIncluded)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      amenitiesIncluded.includes(am)
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${
+                      amenitiesIncluded.includes(am) ? 'bg-white text-slate-800 border-white' : 'border-slate-300'
+                    }`}>
+                      {amenitiesIncluded.includes(am) && <Check className="w-2.5 h-2.5" />}
+                    </span>
+                    {am}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Other amenities */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Other amenities available</label>
+              <input
+                type="text"
+                value={otherAmenities}
+                onChange={(e) => setOtherAmenities(e.target.value)}
+                className="w-full border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+              />
+            </div>
+
+            {/* Construction Type */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Construction Type</label>
+              <div className="flex gap-2">
+                {[{ v: 'new', l: 'New Construction' }, { v: 'established', l: 'Established Building' }].map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setConstructionType(opt.v as any)}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                      constructionType === opt.v
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Property Description */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-slate-800">Property Description</label>
+                <button
+                  type="button"
+                  onClick={generateAIDescription}
+                  disabled={generatingDesc}
+                  className="text-xs font-bold text-teal-600 hover:text-teal-700 disabled:opacity-50"
+                >
+                  {generatingDesc ? 'Generating...' : 'Auto-generate Description'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">Highlight the best aspects of your office and what makes it attractive to potential tenants. Include any special features or add details regarding availability, etc.</p>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={6}
+                className="w-full border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-y"
               />
             </div>
           </div>
+        </section>
 
-          <div className="flex items-center gap-4">
-            {/* Auto Save Status Indicator */}
-            {autoSaveStatus === 'saving' && (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 animate-pulse">
-                <Loader2 className="w-3 h-3 text-teal-600 animate-spin" />
-                Saving...
-              </span>
-            )}
-            {autoSaveStatus === 'saved' && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-teal-600">
-                Saved ✓
-              </span>
-            )}
+        {/* Confirm your space address */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">Confirm your space address</h2>
 
-            <button
-              onClick={() => saveDraftProgress()}
-              disabled={savingDraft}
-              className="flex items-center gap-1 text-slate-500 hover:text-slate-900 font-semibold text-xs border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-              Save & Exit
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Steps Content Area */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-10 md:py-16">
-        <AnimatePresence mode="wait">
-          {/* STEP 1: Space Type */}
-          {currentStep === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              <div className="space-y-3">
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  What type of medical space are you listing?
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Select the category that best represents your clinical infrastructure.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {SPACE_TYPES.map((type) => {
-                  const IconComponent = type.icon
-                  const isSelected = selectedSpaceType === type.id
-
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedSpaceType(type.id)}
-                      className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between h-40 hover:shadow-md ${
-                        isSelected
-                          ? 'border-teal-600 bg-teal-50/20'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          isSelected ? 'bg-teal-600 text-white' : 'bg-slate-50 text-slate-500'
-                        }`}
-                      >
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">{type.label}</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 leading-snug">{type.description}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 2: Space Details */}
-          {currentStep === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Tell us more about your space
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Give medical professionals an overview of the room layout and available amenities.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Title Input */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Listing Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Premium Dental Chair in Modern Clinic"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-sm transition-all"
-                  />
-                  <p className="text-[10px] text-slate-400">At least 5 characters. Keep it clear and descriptive.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Square Footage Input */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Square Footage (sq. ft.)</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 150"
-                      value={squareFeet}
-                      onChange={(e) => setSquareFeet(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-sm transition-all"
-                    />
-                  </div>
-
-                  {/* Bed/Room Counter */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Rooms / Beds Count</label>
-                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 w-36 py-1.5 px-3 rounded-xl justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setRooms(Math.max(1, rooms - 1))}
-                        className="w-8 h-8 rounded-lg bg-white shadow-sm border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                      >
-                        <Minus className="w-3.5 h-3.5 text-slate-600" />
-                      </button>
-                      <span className="font-extrabold text-slate-800 text-sm">{rooms}</span>
-                      <button
-                        type="button"
-                        onClick={() => setRooms(rooms + 1)}
-                        className="w-8 h-8 rounded-lg bg-white shadow-sm border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-slate-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Amenities checklist */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Space Amenities</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {AMENITIES_LIST.map((amenity) => {
-                      const checked = selectedAmenities.includes(amenity.id)
-
-                      return (
-                        <button
-                          key={amenity.id}
-                          type="button"
-                          onClick={() => toggleAmenity(amenity.id)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-left text-xs font-semibold transition-all ${
-                            checked
-                              ? 'border-teal-500 bg-teal-50/15 text-teal-800'
-                              : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                          }`}
-                        >
-                          <div
-                            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
-                              checked ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300 bg-white'
-                            }`}
-                          >
-                            {checked && <Check className="w-3 h-3" />}
-                          </div>
-                          <span>{amenity.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 3: Location */}
-          {currentStep === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-6"
-            >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Where is your space located?
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Search or click on the map to pin the clinic location.
-                </p>
-              </div>
-
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  ref={autocompleteInputRef}
-                  type="text"
-                  placeholder={mapsLoaded ? "Search clinic address..." : "Search simulation (Maps offline)..."}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-sm shadow-sm"
-                />
-              </div>
-
-              <div
-                ref={mapRef}
-                className="w-full h-64 rounded-2xl border border-slate-200 bg-slate-100 overflow-hidden relative flex items-center justify-center text-slate-400 shadow-sm"
+          <div className="bg-white border-2 border-slate-200 rounded-2xl divide-y divide-slate-200">
+            <input
+              type="text"
+              placeholder="Street Address"
+              value={streetAddress}
+              onChange={(e) => setStreetAddress(e.target.value)}
+              className="w-full px-4 py-3 text-sm font-medium outline-none rounded-t-2xl"
+            />
+            <input
+              type="text"
+              placeholder="Street Address line 2 (optional)"
+              value={streetAddress2}
+              onChange={(e) => setStreetAddress2(e.target.value)}
+              className="w-full px-4 py-3 text-sm font-medium outline-none"
+            />
+            <input
+              type="text"
+              placeholder="City"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full px-4 py-3 text-sm font-medium outline-none"
+            />
+            <div className="relative">
+              <label className="absolute left-4 top-1 text-[10px] font-semibold text-slate-400">State / Province</label>
+              <select
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="w-full appearance-none bg-white px-4 pt-5 pb-3 text-sm font-medium outline-none cursor-pointer"
               >
-                {!mapsLoaded && (
-                  <div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center p-6 text-center space-y-3">
-                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center border border-teal-100 text-teal-600">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-slate-800 font-bold text-xs">Simulated Coordinates Enabled</p>
-                      <p className="text-[10px] text-slate-400 max-w-xs mt-1">
-                        Please type address details below. Pin coordinates will auto-calculate on draft save.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                {US_STATES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+            <input
+              type="text"
+              placeholder="Zip Code"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              className="w-full px-4 py-3 text-sm font-medium outline-none rounded-b-2xl"
+            />
+          </div>
+        </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Street Address</label>
-                  <input
-                    type="text"
-                    required
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                    placeholder="e.g. 101 Medical Center Pkwy"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">City</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                    placeholder="e.g. Orlando"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">State / Province</label>
-                  <input
-                    type="text"
-                    required
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                    placeholder="e.g. FL"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Zip / PIN Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                    placeholder="e.g. 32801"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Country</label>
-                  <input
-                    type="text"
-                    required
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 4: Photo Gallery */}
-          {currentStep === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Add photos of your medical space
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Upload at least 3 photos (max 20). Drag cards to reorder. Cover photo is shown first.
-                </p>
-              </div>
-
-              {/* Upload Dropzone */}
-              <div
-                {...getRootProps()}
-                className={`border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-3 ${
-                  isDragActive
-                    ? 'border-teal-500 bg-teal-50/10'
-                    : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+        {/* Which professionals */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Which professionals is your space available to?</h2>
+          <div className="flex flex-wrap gap-2">
+            {['Physicians (MD/DO)', 'Other Healthcare Professionals'].map((prof) => (
+              <button
+                key={prof}
+                type="button"
+                onClick={() => toggleArrayItem(targetProfessionals, prof, setTargetProfessionals)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all ${
+                  targetProfessionals.includes(prof)
+                    ? 'border-slate-800 bg-slate-800 text-white'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
-                <input {...getInputProps()} />
-                <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">Drag & drop files here, or click to upload</p>
-                  <p className="text-xs text-slate-400 mt-1">Supports JPG, PNG, or WebP. Max 10MB per image.</p>
-                </div>
-              </div>
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${
+                  targetProfessionals.includes(prof) ? 'bg-white text-slate-800 border-white' : 'border-slate-300'
+                }`}>
+                  {targetProfessionals.includes(prof) && <Check className="w-2.5 h-2.5" />}
+                </span>
+                {prof}
+              </button>
+            ))}
+          </div>
+        </section>
 
-              {/* Upload Failure Alerts */}
-              {Object.keys(photoErrors).length > 0 && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-2xl space-y-2 text-xs text-red-800">
-                  <p className="font-bold flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-red-600" />
-                    Failed uploads:
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {Object.entries(photoErrors).map(([name, err]) => (
-                      <li key={name}>
-                        <span className="font-bold">{name}</span>: {err}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+        {/* Make your space stand out */}
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-slate-900">Make your space stand out</h2>
+            <p className="text-xs text-slate-500">Share nice images of your space</p>
+          </div>
 
-              {/* Photos Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                {uploadedPhotos.map((photo, index) => {
-                  const isUploading = photo.status === 'uploading'
-                  const progressPct = photoUploadProgress[photo.name] || 0
-                  const isCover = index === 0
-
-                  return (
-                    <div
-                      key={photo.id}
-                      draggable={!isUploading}
-                      onDragStart={() => handlePhotoDragStart(index)}
-                      onDragOver={(e) => handlePhotoDragOver(e, index)}
-                      onDrop={(e) => handlePhotoDrop(e, index)}
-                      className={`relative aspect-[4/3] rounded-2xl border overflow-hidden bg-slate-100 shadow-sm flex flex-col justify-between group transition-all ${
-                        isUploading ? 'opacity-80 border-slate-200' : 'border-slate-200 hover:border-slate-300 hover:shadow-md cursor-grab active:cursor-grabbing'
-                      }`}
-                    >
-                      {/* Photo Thumbnail */}
-                      <img src={photo.originalUrl} alt={`Space ${index + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-
-                      {/* Cover Photo Badge */}
-                      {isCover && (
-                        <span className="absolute top-3 left-3 bg-teal-600 text-white font-bold text-[10px] px-2.5 py-1 rounded-full shadow z-10">
-                          Cover Photo
-                        </span>
-                      )}
-
-                      {/* Delete Button */}
-                      {!isUploading && (
-                        <button
-                          onClick={() => handleDeletePhoto(photo.id, photo.originalUrl)}
-                          className="absolute top-3 right-3 bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 w-7 h-7 rounded-full shadow border border-slate-100 flex items-center justify-center z-10 transition-colors"
-                          title="Delete Photo"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-
-                      {/* Loading/Progress Overlay */}
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 space-y-2 z-10">
-                          <Loader2 className="w-6 h-6 text-teal-600 animate-spin" />
-                          <span className="text-[10px] font-bold text-slate-500">Compressing & Uploading</span>
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-teal-600 h-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Caption text block */}
-                      {!isUploading && (
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent z-10 opacity-90 group-hover:opacity-100 transition-opacity">
-                          <input
-                            type="text"
-                            placeholder="Add photo caption..."
-                            defaultValue={photo.caption || ''}
-                            onBlur={(e) => handleUpdateCaption(photo.id, e.target.value)}
-                            className="w-full bg-black/40 hover:bg-black/60 focus:bg-white text-white focus:text-slate-800 placeholder-slate-300 focus:placeholder-slate-400 text-[10px] font-semibold px-2 py-1 rounded border border-transparent focus:border-slate-300 focus:outline-none transition-all"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 5: Video Uploader */}
-          {currentStep === 5 && (
-            <motion.div
-              key="step5"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Add a video tour <span className="text-slate-400 font-normal text-lg">(Optional)</span>
-                  </h2>
-                  <button
-                    onClick={() => saveDraftProgress(currentStep + 1)}
-                    className="text-xs font-semibold text-slate-500 hover:text-teal-600"
-                  >
-                    Skip step
-                  </button>
-                </div>
-                <p className="text-slate-500 text-sm">
-                  Upload a walk-through video or record a short tour using your device camera.
-                </p>
-              </div>
-
-              {videoError && (
-                <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-2xl">
-                  {videoError}
-                </div>
-              )}
-
-              {/* Video Player Display if uploaded */}
-              {uploadedVideo ? (
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm max-w-xl mx-auto">
-                  <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-slate-900 border border-slate-100 shadow">
-                    <video src={uploadedVideo.secureUrl} controls className="w-full h-full object-contain" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                        <Video className="w-4 h-4 text-teal-600" />
-                        Video Tour Uploaded
-                      </p>
-                      <p className="text-slate-400 text-[10px] mt-0.5">Delivery compressed via Cloudinary</p>
-                    </div>
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-5">
+            {/* Featured Image */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Featured Image</label>
+              {featuredImage ? (
+                <div className="space-y-2">
+                  <div className="relative w-40 h-28 rounded-xl overflow-hidden border border-slate-200">
+                    <img src={featuredImage.originalUrl} alt="Featured" className="w-full h-full object-cover" />
                     <button
-                      onClick={handleDeleteVideo}
-                      className="bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 border border-red-200 transition-all"
+                      onClick={() => handleDeleteImage(featuredImage.id, featuredImage.originalUrl, 'featured')}
+                      className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 hover:bg-red-50"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      Delete Video
                     </button>
                   </div>
-                </div>
-              ) : isRecordingMode ? (
-                /* Webcam recording container */
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6 max-w-xl mx-auto shadow-sm">
-                  <div className="aspect-[16/9] rounded-2xl bg-slate-900 overflow-hidden border border-slate-800 shadow relative">
-                    {/* Recording flashing light */}
-                    {isRecording && (
-                      <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 bg-red-600 text-white font-bold text-[10px] px-2.5 py-1 rounded-full shadow animate-pulse">
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                        REC {formatTimer(recordingSeconds)}
-                      </div>
-                    )}
-                    
-                    {/* Live webcam video feed */}
-                    <video ref={webcamVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                  </div>
-
-                  <div className="flex justify-between items-center flex-wrap gap-3">
-                    <button
-                      onClick={stopWebcam}
-                      disabled={isRecording}
-                      className="text-xs text-slate-500 hover:text-slate-800 font-bold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-50"
-                    >
-                      Cancel Webcam
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      {!isRecording && !recordedVideoBlob && (
-                        <button
-                          onClick={startRecording}
-                          className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 transition-all"
-                        >
-                          <Video className="w-4 h-4" />
-                          Start Recording
-                        </button>
-                      )}
-
-                      {isRecording && (
-                        <button
-                          onClick={handleStopRecording}
-                          className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all"
-                        >
-                          <VideoOff className="w-4 h-4" />
-                          Stop Recording
-                        </button>
-                      )}
-
-                      {recordedVideoBlob && !isRecording && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={startRecording}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            Retake
-                          </button>
-                          
-                          <button
-                            onClick={handleUploadRecordedVideo}
-                            className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-teal-600/15 flex items-center gap-1.5 transition-all"
-                          >
-                            <UploadCloud className="w-4 h-4" />
-                            Upload Recording
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    defaultValue={featuredImage.caption || ''}
+                    placeholder="Add a caption..."
+                    onBlur={(e) => handleCaptionUpdate(featuredImage.id, e.target.value)}
+                    className="w-40 px-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-teal-500"
+                  />
                 </div>
               ) : (
-                /* Choose Upload Type buttons */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                  {/* File Upload Zone */}
-                  <label className="bg-white rounded-3xl border border-slate-200 hover:border-teal-500 shadow-sm p-8 text-center flex flex-col items-center justify-center cursor-pointer transition-all hover:shadow-md h-56 space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
-                      <UploadCloud className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm">Upload Video File</h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        MP4, MOV formats. Max file size: 500MB.
-                      </p>
+                <div
+                  {...featuredDropzone.getRootProps()}
+                  className="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-4 cursor-pointer transition-colors text-center"
+                >
+                  <input {...featuredDropzone.getInputProps()} />
+                  <p className="text-sm font-semibold text-slate-600">Upload or select image</p>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Images */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Property Additional Images</label>
+              <div className="flex flex-wrap gap-3">
+                {additionalImages.map((img) => (
+                  <div key={img.id} className="space-y-2">
+                    <div className="relative w-28 h-20 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={img.originalUrl} alt="Additional" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => handleDeleteImage(img.id, img.originalUrl, 'additional')}
+                        className="absolute top-1 right-1 bg-white/90 rounded-full p-0.5 text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </div>
                     <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
+                      type="text"
+                      defaultValue={img.caption || ''}
+                      placeholder="Add a caption..."
+                      onBlur={(e) => handleCaptionUpdate(img.id, e.target.value)}
+                      className="w-28 px-2 py-1 text-[10px] border border-slate-200 rounded-md outline-none focus:border-teal-500"
                     />
-                  </label>
-
-                  {/* Browser Webcam capture Zone */}
-                  <button
-                    onClick={startWebcam}
-                    className="bg-white rounded-3xl border border-slate-200 hover:border-teal-500 shadow-sm p-8 text-center flex flex-col items-center justify-center cursor-pointer transition-all hover:shadow-md h-56 space-y-4"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
-                      <Camera className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm">Record Tour Live</h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Use device camera to record a video directly.
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              )}
-
-              {/* Video upload progress bar */}
-              {videoUploadProgress !== null && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center max-w-md mx-auto space-y-3 shadow-sm">
-                  <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto" />
-                  <div>
-                    <p className="font-bold text-slate-800 text-sm">Uploading Video Tour</p>
-                    <p className="text-slate-400 text-xs mt-1">Please do not close this tab during upload.</p>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-teal-600 h-full transition-all duration-300" style={{ width: `${videoUploadProgress}%` }} />
-                  </div>
-                  <span className="text-xs text-teal-600 font-bold">{videoUploadProgress}% Completed</span>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* STEP 6: Description */}
-          {currentStep === 6 && (
-            <motion.div
-              key="step6"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Describe your medical space
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Provide a professional overview highlighting clinical infrastructure, compliance, accessibility, and practitioner workflows.
-                </p>
+                ))}
               </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Property Description</label>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 group relative cursor-help">
-                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-teal-600 transition-colors" />
-                    <span className="font-semibold underline">Writing Tips</span>
-                    <div className="absolute right-0 bottom-7 hidden group-hover:block bg-slate-950 text-white text-[11px] p-4 rounded-2xl shadow-xl w-72 leading-relaxed z-50">
-                      <p className="font-bold border-b border-slate-800 pb-1 mb-1.5 text-teal-400">Suggested Focus Areas:</p>
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li><strong>Clinical Specs:</strong> Mention equipment (dental chairs, examination lights, autoclave).</li>
-                        <li><strong>Compliance:</strong> Highlight ADA compliance, sanitization protocols.</li>
-                        <li><strong>Layout & Access:</strong> Describe room sizes, parking availability, reception counter sharing, elevator access.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <textarea
-                  required
-                  placeholder="e.g. Modern exam room available within a premium multi-specialty medical clinic. Ideal for family physicians, dermatologists, or specialists. The space is fully ADA-compliant, featuring clinical grade vinyl flooring, custom built-in cabinetry with a handwashing sink, and high-speed secure WiFi. Practitioners will have access to a shared receptionist desk, comfortable patient waiting room, and dedicated staff breakroom. Ample street and garage parking available for patients."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full h-64 px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-sm transition-all shadow-sm leading-relaxed"
-                />
-
-                <div className="flex justify-between items-center">
-                  <span className={`text-[10px] font-bold ${description.trim().length >= 100 ? 'text-teal-600' : 'text-amber-600'}`}>
-                    {description.trim().length} / 100 minimum characters
-                  </span>
-                  
-                  <button
-                    type="button"
-                    onClick={generateAIDescription}
-                    disabled={isGeneratingDescription}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
-                  >
-                    {isGeneratingDescription ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
-                        AI is analyzing your listing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
-                        {description ? 'Regenerate with AI' : 'Generate with AI'}
-                      </>
-                    )}
-                  </button>
-                </div>
+              <div
+                {...additionalDropzone.getRootProps()}
+                className="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-4 cursor-pointer transition-colors text-center"
+              >
+                <input {...additionalDropzone.getInputProps()} />
+                <p className="text-sm font-semibold text-slate-600">Upload or select image</p>
               </div>
-            </motion.div>
-          )}
-
-          {/* STEP 7: Pricing, Review & Publish */}
-          {currentStep === 7 && (
-            <motion.div
-              key="step7"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-12"
-            >
-              {/* Part 1: Pricing Section */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <h2 id="price-label" className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Set your pricing & availability
-                  </h2>
-                  <p className="text-slate-500 text-sm">
-                    Configure your medical space leasing rates. You must configure at least one active pricing tier.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Price per Hour */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Hour ($)</label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-400 text-xs">$</span>
-                      </div>
-                      <input
-                        type="number"
-                        placeholder="e.g. 45"
-                        value={pricePerHour}
-                        onChange={(e) => setPricePerHour(e.target.value)}
-                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price per Day */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Day ($)</label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-400 text-xs">$</span>
-                      </div>
-                      <input
-                        type="number"
-                        placeholder="e.g. 250"
-                        value={pricePerDay}
-                        onChange={(e) => setPricePerDay(e.target.value)}
-                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price per Month */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Price per Month ($)</label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-400 text-xs">$</span>
-                      </div>
-                      <input
-                        type="number"
-                        placeholder="e.g. 4500"
-                        value={pricePerMonth}
-                        onChange={(e) => setPricePerMonth(e.target.value)}
-                        className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:ring-1 focus:ring-teal-600 focus:border-transparent text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Part 2: Availability Schedule Section */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-slate-800">Weekly Availability Hours</h3>
-                  <p className="text-slate-500 text-xs">Specify which days and during what times the clinical space is accessible.</p>
-                </div>
-
-                <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-4">
-                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                    const isChecked = !!availabilityHours[day]
-                    const hours = availabilityHours[day] || { open: '09:00', close: '17:00' }
-
-                    const handleDayToggle = () => {
-                      setAvailabilityHours((prev) => {
-                        const copy = { ...prev }
-                        if (copy[day]) {
-                          delete copy[day]
-                        } else {
-                          copy[day] = { open: '09:00', close: '17:00' }
-                        }
-                        return copy
-                      })
-                    }
-
-                    const handleTimeChange = (type: 'open' | 'close', val: string) => {
-                      setAvailabilityHours((prev) => ({
-                        ...prev,
-                        [day]: {
-                          ...hours,
-                          [type]: val,
-                        },
-                      }))
-                    }
-
-                    return (
-                      <div key={day} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 flex-wrap gap-4">
-                        <button
-                          type="button"
-                          onClick={handleDayToggle}
-                          className="flex items-center gap-3 text-xs font-bold text-slate-700 capitalize"
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                            isChecked ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300 bg-white'
-                          }`}>
-                            {isChecked && <Check className="w-3 h-3" />}
-                          </div>
-                          <span>{day}</span>
-                        </button>
-
-                        {isChecked && (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="time"
-                              value={hours.open}
-                              onChange={(e) => handleTimeChange('open', e.target.value)}
-                              className="px-2 py-1 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-600 focus:outline-none"
-                            />
-                            <span className="text-slate-400 text-xs">to</span>
-                            <input
-                              type="time"
-                              value={hours.close}
-                              onChange={(e) => handleTimeChange('close', e.target.value)}
-                              className="px-2 py-1 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-600 focus:outline-none"
-                            />
-                          </div>
-                        )}
-
-                        {!isChecked && (
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Closed / Unavailable</span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Part 3: Review Section */}
-              <div className="space-y-6 pt-6 border-t border-slate-100">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-slate-800">Review listing details</h3>
-                  <p className="text-slate-500 text-xs">Double check your listing specifications before pushing it live.</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                  {/* Photo & Main Details Banner */}
-                  <div className="relative aspect-[21/9] bg-slate-100 border-b border-slate-100">
-                    {uploadedPhotos.length > 0 ? (
-                      <img src={uploadedPhotos[0].originalUrl} alt="Listing Cover" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-xs space-y-1">
-                        <UploadCloud className="w-8 h-8 text-slate-300" />
-                        <span>No photos uploaded yet</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6">
-                      <span className="bg-teal-600 text-white font-bold text-[9px] px-2.5 py-0.5 rounded-full w-max shadow uppercase tracking-wider mb-2">
-                        {selectedSpaceType ? selectedSpaceType.replace(/_/g, ' ') : 'Medical Space'}
-                      </span>
-                      <h4 className="text-white font-extrabold text-lg md:text-xl truncate">{title || 'Untitled Listing'}</h4>
-                      <p className="text-slate-200 text-xs mt-1 truncate">{address ? `${address}, ${city}, ${state}` : 'No address specified'}</p>
-                    </div>
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="p-6 space-y-6 text-xs text-slate-700">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Space Specifications */}
-                      <div className="space-y-2.5">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <h5 className="font-extrabold text-slate-800 text-sm">Space Details</h5>
-                          <button
-                            type="button"
-                            onClick={() => setCurrentStep(2)}
-                            className="text-teal-600 hover:text-teal-700 font-bold"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                        <ul className="space-y-1.5">
-                          <li><strong>Total Area:</strong> {squareFeet ? `${squareFeet} sq. ft.` : 'N/A'}</li>
-                          <li><strong>Rooms / Beds:</strong> {rooms}</li>
-                          <li><strong>Amenities:</strong> {selectedAmenities.length > 0 ? selectedAmenities.join(', ') : 'None'}</li>
-                        </ul>
-                      </div>
-
-                      {/* Pricing Specifications */}
-                      <div className="space-y-2.5">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <h5 className="font-extrabold text-slate-800 text-sm">Pricing & Availability</h5>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const el = document.getElementById('price-label');
-                              if (el) el.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                            className="text-teal-600 hover:text-teal-700 font-bold"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                        <ul className="space-y-1.5">
-                          <li><strong>Hourly rate:</strong> {pricePerHour ? `$${pricePerHour}/hr` : 'N/A'}</li>
-                          <li><strong>Daily rate:</strong> {pricePerDay ? `$${pricePerDay}/day` : 'N/A'}</li>
-                          <li><strong>Monthly rate:</strong> {pricePerMonth ? `$${pricePerMonth}/mo` : 'N/A'}</li>
-                          <li><strong>Active Days:</strong> {Object.keys(availabilityHours).length > 0 ? Object.keys(availabilityHours).join(', ') : 'None'}</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Description Paragraph snippet */}
-                    <div className="space-y-2.5 border-t border-slate-100 pt-5">
-                      <div className="flex justify-between items-center">
-                        <h5 className="font-extrabold text-slate-800 text-sm">Property Description</h5>
-                        <button
-                          type="button"
-                          onClick={() => setCurrentStep(6)}
-                          className="text-teal-600 hover:text-teal-700 font-bold"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                      <p className="text-slate-500 leading-relaxed whitespace-pre-wrap">{description || 'No description provided yet.'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* Footer Navigation Bar */}
-      <footer className="border-t border-slate-100 bg-white py-4 px-6 sticky bottom-0 z-45">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button
-            onClick={handleBack}
-            disabled={currentStep === 1 || savingDraft}
-            className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${
-              currentStep === 1 || savingDraft
-                ? 'text-slate-300 cursor-not-allowed'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-
-          {currentStep === 7 ? (
-            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => saveDraftProgress()}
-                disabled={savingDraft || publishing}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-3 rounded-xl text-sm border border-slate-200 active:scale-97 transition-all disabled:opacity-50"
+                onClick={() => (document.querySelector('[data-additional-trigger]') as HTMLElement)?.click()}
+                className="flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 mt-1"
               >
-                Save as Draft
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePublishListing}
-                disabled={!isStepValid() || savingDraft || publishing}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-teal-600/10 active:scale-97 transition-all disabled:opacity-50"
-              >
-                {publishing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Publishing...
-                  </>
-                ) : (
-                  <>
-                    Publish Listing
-                    <Check className="w-4 h-4" />
-                  </>
-                )}
+                <Plus className="w-4 h-4" /> Add new
               </button>
             </div>
-          ) : (
-            <button
-              onClick={handleNext}
-              disabled={!isStepValid() || savingDraft || videoUploadProgress !== null}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-teal-600/10 active:scale-97 transition-all disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {savingDraft ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Autosaving...
-                </>
-              ) : currentStep === 6 ? (
-                <>
-                  Continue to Pricing
-                  <ArrowRight className="w-4 h-4" />
-                </>
+
+            {/* Property Video */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <label className="text-sm font-bold text-slate-800">Property Video (Optional)</label>
+              <p className="text-xs text-slate-500 mb-2">Upload a virtual tour or walkthrough video of your space.</p>
+              {propertyVideo ? (
+                <div className="space-y-2">
+                  <div className="relative w-48 h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
+                    <video src={propertyVideo.originalUrl} controls className="w-full h-full object-contain" />
+                    <button
+                      onClick={() => handleDeleteImage(propertyVideo.id, propertyVideo.originalUrl, 'video')}
+                      className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 hover:bg-red-50 z-10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    defaultValue={propertyVideo.caption || ''}
+                    placeholder="Add a video caption..."
+                    onBlur={(e) => handleCaptionUpdate(propertyVideo.id, e.target.value)}
+                    className="w-48 px-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-teal-500"
+                  />
+                </div>
               ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <div
+                  {...videoDropzone.getRootProps()}
+                  className="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-6 cursor-pointer transition-colors text-center"
+                >
+                  <input {...videoDropzone.getInputProps()} />
+                  <p className="text-sm font-semibold text-slate-600">Upload video (Max 500MB)</p>
+                </div>
               )}
-            </button>
-          )}
-        </div>
-      </footer>
+            </div>
+          </div>
+        </section>
 
-      {/* Success Published Overlay View */}
-      {publishSuccess && (
-        <div className="fixed inset-0 bg-white z-[999] flex flex-col justify-center items-center p-6 text-center space-y-8">
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', damping: 15 }}
-            className="w-20 h-20 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shadow-md"
-          >
-            <Check className="w-10 h-10 stroke-[3]" />
-          </motion.div>
+        {/* Monthly asking rent */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Monthly asking rent</h2>
+          <div className="relative w-full sm:w-80">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">$</span>
+            <input
+              type="number"
+              value={monthlyRent}
+              onChange={(e) => setMonthlyRent(e.target.value)}
+              placeholder="0"
+              className="w-full pl-8 pr-4 py-3 border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl text-sm font-medium outline-none transition-colors"
+            />
+          </div>
+        </section>
 
-          <div className="space-y-3 max-w-md">
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Your listing is live!</h2>
-            <p className="text-slate-500 text-sm leading-relaxed">
-              Congratulations! Your medical space has been published successfully. Healthcare professionals can now discover and request bookings for your space.
+        {/* We're curious */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">We're curious</h2>
+
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">How did you hear about us?</label>
+              <div className="relative">
+                <select
+                  value={hearAboutUs}
+                  onChange={(e) => setHearAboutUs(e.target.value)}
+                  className="w-full appearance-none bg-white border-2 border-slate-200 hover:border-slate-300 focus:border-teal-500 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-colors cursor-pointer"
+                >
+                  {HEAR_ABOUT_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt === '- Select -' ? '' : opt}>{opt}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">What is your inspiration to sublease your office? (check all that applies)</label>
+              <div className="flex flex-col gap-2">
+                {SUBLEASE_INSPIRATIONS.map((ins) => (
+                  <button
+                    key={ins}
+                    type="button"
+                    onClick={() => toggleArrayItem(subleaseInspirations, ins, setSubleaseInspirations)}
+                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-left text-sm font-medium border-2 transition-all ${
+                      subleaseInspirations.includes(ins)
+                        ? 'border-slate-800 bg-slate-800 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                      subleaseInspirations.includes(ins) ? 'bg-white text-slate-800 border-white' : 'border-slate-300'
+                    }`}>
+                      {subleaseInspirations.includes(ins) && <Check className="w-3 h-3" />}
+                    </span>
+                    {ins}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Relationship to advertised property */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Relationship to advertised property</h2>
+          <p className="text-sm text-slate-600">You're the</p>
+          <div className="flex flex-wrap gap-2">
+            {[{ v: 'owner', l: 'Property Owner/Tenant or their representative' }, { v: 'broker', l: 'Broker/Agent representing property' }].map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setRelationship(opt.v as any)}
+                className={`px-4 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all ${
+                  relationship === opt.v
+                    ? 'border-slate-800 bg-slate-800 text-white'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Contact preferences */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">How would you like to be contacted by prospective lessees/tenants?</h2>
+
+          <div className="flex gap-2 mb-4">
+            {['Email', 'Phone'].map((method) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => toggleArrayItem(contactMethods, method, setContactMethods)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all ${
+                  contactMethods.includes(method)
+                    ? 'border-slate-800 bg-slate-800 text-white'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${
+                  contactMethods.includes(method) ? 'bg-white text-slate-800 border-white' : 'border-slate-300'
+                }`}>
+                  {contactMethods.includes(method) && <Check className="w-2.5 h-2.5" />}
+                </span>
+                {method}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-slate-700">Contact Name</label>
+              <input type="text" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Contact Person Name" className="w-full border-2 border-slate-200 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-slate-700">Contact Email</label>
+              <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Enter your email" className="w-full border-2 border-slate-200 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-slate-700">Contact Phone</label>
+              <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="Enter your phone" className="w-full border-2 border-slate-200 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors" />
+            </div>
+          </div>
+        </section>
+
+        {/* Brand Ambassador */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Were you referred by a Brand Ambassador?</h2>
+          <div className="flex gap-2">
+            {['Yes', 'No'].map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setBrandAmbassador(opt === 'Yes')}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                  brandAmbassador === (opt === 'Yes')
+                    ? 'border-slate-800 bg-slate-800 text-white'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Attestation */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">Attestation</h2>
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={attestation1} onChange={(e) => setAttestation1(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+              <span className="text-sm text-slate-700 leading-relaxed">
+                I have read and agree to the <a href="#" className="text-teal-600 underline font-semibold">Terms and Policies</a>, <a href="#" className="text-teal-600 underline font-semibold">Disclaimer</a>, and <a href="#" className="text-teal-600 underline font-semibold">Privacy Policy</a>.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={attestation2} onChange={(e) => setAttestation2(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+              <span className="text-sm text-slate-700 leading-relaxed">
+                I confirm that I am the property owner or have the legal authority to advertise this property. I further confirm that this listing does not violate any exclusive agency or brokerage agreements, and I accept full responsibility for the accuracy of the information provided.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={attestation3} onChange={(e) => setAttestation3(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+              <span className="text-sm text-slate-700 leading-relaxed">
+                By uploading images, I confirm I have the legal right to use and distribute these materials and that doing so does not violate any copyright or licensing agreements with third parties.
+              </span>
+            </label>
+          </div>
+        </section>
+
+        {/* Electronic Signature Agreement */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">Electronic Signature Agreement</h2>
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
+            <p className="text-sm text-slate-600 leading-relaxed">
+              By typing your name below and submitting this form, you acknowledge and agree that this constitutes your electronic signature. You affirm that all information provided is accurate to the best of your knowledge and that you have the legal right to advertise this property. This electronic signature is legally binding and has the same force and effect as a handwritten signature.
+            </p>
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-slate-700">Full Name</label>
+              <input
+                type="text"
+                value={signatureName}
+                onChange={(e) => setSignatureName(e.target.value)}
+                placeholder="Please enter your full name"
+                className="w-full border-2 border-slate-200 focus:border-teal-500 rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Listing Submission Disclaimer */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Listing Submission Disclaimer</h2>
+          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-5 sm:p-6 max-h-40 overflow-y-auto">
+            <p className="text-xs font-bold text-slate-700 uppercase mb-2">PLEASE BE ADVISED:</p>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              LinkMedicalSpaces and Link Medical Spaces LLC and its affiliates (collectively, the "Platform") operates solely as an online advertising venue for property owners, landlords, tenants, and interested parties to share and discover available medical office spaces.
+            </p>
+            <p className="text-xs text-slate-600 leading-relaxed mt-2">
+              The Platform does not act as a real estate broker, agent, or intermediary, does not alter or nullify any exclusive agreements you may have with your real estate agent, broker, and/or other real estate professional.
+            </p>
+            <p className="text-xs text-slate-600 leading-relaxed mt-2">
+              By submitting a listing, you represent and warrant that you are the rightful owner or authorized representative of the property and that the information provided is accurate and complete. The Platform reserves the right to remove listings that violate our terms of service or contain inaccurate information.
             </p>
           </div>
+        </section>
 
-          <div className="flex items-center gap-4 flex-wrap justify-center">
-            <button
-              onClick={() => router.push(`/property/${publishedListingSlug}`)}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm shadow-lg shadow-teal-600/10 active:scale-97 transition-all flex items-center gap-1.5"
-            >
-              <Eye className="w-4 h-4" />
-              View Listing
-            </button>
-
-            <button
-              onClick={() => {
-                // Reset all form states
-                setDraftId(null)
-                setSelectedSpaceType(null)
-                setTitle('')
-                setRooms(1)
-                setSquareFeet('')
-                setSelectedAmenities([])
-                setAddress('')
-                setCity('')
-                setState('')
-                setZipCode('')
-                setLatitude(null)
-                setLongitude(null)
-                setUploadedPhotos([])
-                setUploadedVideo(null)
-                setDescription('')
-                setPricePerHour('')
-                setPricePerDay('')
-                setPricePerMonth('')
-                setAvailabilityHours({})
-                setPublishSuccess(false)
-                setPublishedListingSlug(null)
-                setCurrentStep(1)
-              }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl text-sm border border-slate-200 active:scale-97 transition-all"
-            >
-              Add Another Listing
-            </button>
+        {/* Error */}
+        {submitError && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {submitError}
           </div>
+        )}
+
+        {/* Submit Button */}
+        <div className="pt-4 pb-8">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg py-4 rounded-xl shadow-lg shadow-rose-500/20 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit'
+            )}
+          </button>
         </div>
-      )}
+      </main>
+
+      <Footer />
     </div>
   )
 }

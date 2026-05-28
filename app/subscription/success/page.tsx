@@ -111,7 +111,7 @@ export default function SubscriptionSuccessPage() {
 
         <div className="flex flex-col gap-3">
           <button
-            onClick={() => router.push('/add-listing')}
+            onClick={() => router.push('/add-listing?region=orlando')}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-teal-600/20 active:scale-98 transition-all"
           >
             Post Your First Listing

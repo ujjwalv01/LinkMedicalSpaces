@@ -42,7 +42,7 @@ export default function Footer() {
                 </button>
               </li>
               <li>
-                <button onClick={() => router.push('/signup?callbackUrl=/add-listing')} className="hover:text-teal-600 transition-colors">
+                <button onClick={() => router.push('/list-your-space')} className="hover:text-teal-600 transition-colors">
                   List Your Space
                 </button>
               </li>

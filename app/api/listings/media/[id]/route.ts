@@ -13,11 +13,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { caption, order } = body
+    const mediaId = params.id
+    if (!mediaId) {
+      return NextResponse.json({ error: 'Missing media ID' }, { status: 400 })
+    }
 
+    const { caption } = await req.json()
+
+    // Find the media item
     const mediaItem = await prisma.listingMedia.findUnique({
-      where: { id: params.id },
+      where: { id: mediaId },
       include: { listing: true },
     })
 
@@ -25,23 +30,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Media not found' }, { status: 404 })
     }
 
-    // Verify listing ownership
+    // Verify ownership
     if (mediaItem.listing.userId !== session.user.id && session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Update media details
+    // Update the caption
     const updatedMedia = await prisma.listingMedia.update({
-      where: { id: params.id },
-      data: {
-        caption: caption !== undefined ? caption : undefined,
-        order: order !== undefined ? parseInt(order) : undefined,
-      },
+      where: { id: mediaId },
+      data: { caption },
     })
 
     return NextResponse.json(updatedMedia)
   } catch (error) {
     console.error('[PATCH /api/listings/media/[id]]', error)
-    return NextResponse.json({ error: 'Failed to update media item' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

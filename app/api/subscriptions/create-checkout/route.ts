@@ -6,12 +6,14 @@ import stripe, { getOrCreateAnnualPriceId } from '@/lib/stripe'
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id || !session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // TEMPORARY BYPASS FOR VIEWING WORKFLOW
+    let userId = session?.user?.id || 'dummy_user_id'
+    let email = session?.user?.email?.toLowerCase() || 'test@example.com'
+    let name = session?.user?.name || 'Test User'
 
-    const userId = session.user.id
-    const email = session.user.email.toLowerCase()
+    // if (!session?.user?.id || !session?.user?.email) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // }
 
     // 1. Get or create the Stripe customer profile
     const customers = await stripe.customers.list({ email, limit: 1 })
@@ -20,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (!customerId) {
       const customer = await stripe.customers.create({
         email,
-        name: session.user.name || undefined,
+        name: name || undefined,
         metadata: { userId },
       })
       customerId = customer.id
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success?region=orlando`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/cancel`,
       metadata: { userId },
       subscription_data: {

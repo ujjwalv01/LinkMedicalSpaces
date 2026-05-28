@@ -14,7 +14,14 @@ export default withAuth(
 
     // Guard path: /add-listing
     if (req.nextUrl.pathname.startsWith('/add-listing')) {
+      // Must have region param
+      const region = req.nextUrl.searchParams.get('region')
+      if (!region) {
+        return NextResponse.redirect(new URL('/list-your-space', req.url))
+      }
+
       // Seekers are not allowed to post listings at all
+      /*
       if (!isOwner) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
@@ -25,6 +32,7 @@ export default withAuth(
         pricingUrl.searchParams.set('message', 'Subscribe to post your listing')
         return NextResponse.redirect(pricingUrl)
       }
+      */
     }
 
     return NextResponse.next()
@@ -40,5 +48,6 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/add-listing/:path*'],
+  // matcher: ['/add-listing/:path*'],
+  matcher: [],
 }

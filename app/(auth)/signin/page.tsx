@@ -523,12 +523,7 @@ export default function SignInPage() {
                     <Link href="/privacy" className="text-teal-600 hover:underline">Privacy Policy</Link>
                   </p>
 
-                  <p className="text-center text-sm text-gray-500">
-                    Want to use email + password?{' '}
-                    <Link href="/signup" className="text-teal-600 hover:text-teal-700 font-medium hover:underline">
-                      Full registration →
-                    </Link>
-                  </p>
+
                 </div>
               </motion.div>
             )}

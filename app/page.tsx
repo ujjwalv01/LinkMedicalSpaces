@@ -286,7 +286,7 @@ export default function Home() {
             </p>
             
             <button
-              onClick={() => router.push('/signup?callbackUrl=/add-listing')}
+              onClick={() => router.push('/list-your-space')}
               className="inline-flex items-center gap-2 bg-white text-teal-800 font-bold px-6 py-3 rounded-xl hover:bg-slate-55 transition-colors shadow shadow-teal-900/10 active:scale-98"
             >
               <span>Host Your Space</span>
