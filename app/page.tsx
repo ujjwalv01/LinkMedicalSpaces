@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import TestimonialSlider from '@/components/TestimonialSlider'
+import AvailableSpacesPlaceholder from '@/components/AvailableSpacesPlaceholder'
 
 const CATEGORIES = [
   {
@@ -122,11 +124,10 @@ export default function Home() {
               <span>Airbnb for Medical Office Listings</span>
             </div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
-              Find &amp; Book Specialized <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600">
-                Medical Spaces
-              </span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
+              <span className="text-slate-800">Find &amp; Book</span> <br />
+              <span className="text-slate-800">Specialized</span> <br />
+              <span className="text-teal-600">Medical</span> <span className="text-slate-800">Spaces</span>
             </h1>
             
             <p className="text-slate-600 text-base sm:text-lg max-w-xl leading-relaxed">
@@ -292,14 +293,20 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Available Spaces Placeholder */}
+      <AvailableSpacesPlaceholder />
+
+      {/* Testimonials */}
+      <TestimonialSlider />
+
       {/* CTA Host banner */}
       <section className="py-16 max-w-[1200px] mx-auto px-6 w-full">
-        <div className="bg-gradient-to-r from-teal-700 to-emerald-800 rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden shadow-xl">
+        <div className="bg-gradient-to-r from-teal-600 to-slate-800 rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden shadow-xl">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-white/10 to-transparent pointer-events-none" />
           
           <div className="max-w-xl space-y-6 relative z-10">
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Have idle clinic space or operatory slots?</h2>
-            <p className="text-teal-100/90 text-sm leading-relaxed">
+            <p className="text-white/90 text-sm leading-relaxed">
               Earn secondary income by listing exam tables, surgical suites, or unused laboratory time. We make clinic sharing simple and secure.
             </p>
             

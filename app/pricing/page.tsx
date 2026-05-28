@@ -145,7 +145,7 @@ function PricingPage() {
                   </>
                 )}
               </button>
-              <p className="text-[10px] text-center text-slate-400 mt-3">
+              <p className="text-[10px] text-center text-slate-400 mt-3 min-h-[32px]">
                 Secure transaction processed via Stripe. Cancel subscription renewal at any time.
               </p>
             </div>
@@ -218,7 +218,7 @@ function PricingPage() {
                 <span>Get Started Now</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-[10px] text-center text-slate-400 mt-3">
+              <p className="text-[10px] text-center text-slate-400 mt-3 min-h-[32px]">
                 No credit card required to browse listings and connect.
               </p>
             </div>
