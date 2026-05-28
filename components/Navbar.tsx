@@ -37,21 +37,11 @@ export default function Navbar() {
   const pathname = usePathname()
   const { data: session, status: authStatus } = useSession()
 
-  // --- Search state ---
-  const [navLocation, setNavLocation] = useState('')
-  const [navSpaceType, setNavSpaceType] = useState('')
-  const [navLat, setNavLat] = useState<number | null>(null)
-  const [navLng, setNavLng] = useState<number | null>(null)
-
   // --- UI Open states ---
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const autocompleteInputRef = useRef<HTMLInputElement>(null)
-
-  const isSearchPage = pathname === '/search-spaces'
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -63,54 +53,6 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  // Setup Google Places Autocomplete for Navbar input
-  useEffect(() => {
-    // Skip loading places script inside navbar if already on the search page
-    if (isSearchPage) return
-
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
-    if (!apiKey || apiKey === 'your-google-maps-api-key') return
-
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places'],
-    }) as any
-
-    loader.load().then((google: any) => {
-      if (autocompleteInputRef.current) {
-        const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, {
-          types: ['(regions)'],
-        })
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace()
-          if (!place.geometry || !place.geometry.location) return
-
-          setNavLat(place.geometry.location.lat())
-          setNavLng(place.geometry.location.lng())
-          setNavLocation(place.formatted_address || place.name || '')
-        })
-      }
-    }).catch((err: any) => {
-      console.error('Failed to load Google Maps inside navbar', err)
-    })
-  }, [isSearchPage])
-
-  // Handle Search Submission
-  const handleNavSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    
-    if (navLocation) params.set('city', navLocation)
-    if (navSpaceType) params.set('spaceType', navSpaceType)
-    if (navLat !== null) params.set('lat', navLat.toString())
-    if (navLng !== null) params.set('lng', navLng.toString())
-
-    setIsSearchExpanded(false)
-    router.push(`/search-spaces?${params.toString()}`)
-  }
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
@@ -132,55 +74,35 @@ export default function Navbar() {
           </span>
         </div>
 
-        {/* Center: Search Bar (Hidden on search-spaces page to avoid duplication) */}
-        {!isSearchPage && (
-          <div className="hidden md:block flex-1 max-w-xl">
-            <form onSubmit={handleNavSearch} className="flex items-center bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-full p-1.5 transition-all shadow-sm">
-              
-              {/* Location Input */}
-              <div className="flex-1 flex items-center px-3 gap-2 border-r border-slate-200 min-w-0">
-                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <input
-                  ref={autocompleteInputRef}
-                  type="text"
-                  placeholder="Where are you looking?"
-                  value={navLocation}
-                  onChange={(e) => setNavLocation(e.target.value)}
-                  className="bg-transparent text-xs sm:text-sm font-semibold outline-none text-slate-800 placeholder-slate-400 w-full truncate"
-                />
-              </div>
-
-              {/* Space Type Selector */}
-              <div className="flex-1 flex items-center px-3 gap-1 min-w-0">
-                <Building className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <select
-                  value={navSpaceType}
-                  onChange={(e) => setNavSpaceType(e.target.value)}
-                  className="bg-transparent text-xs sm:text-sm font-semibold outline-none text-slate-800 placeholder-slate-400 w-full cursor-pointer appearance-none truncate"
-                >
-                  <option value="">Any Space Type</option>
-                  {SPACE_TYPES.filter(o => o.value !== '').map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Search button */}
-              <button
-                type="submit"
-                className="bg-teal-600 hover:bg-teal-700 text-white rounded-full p-2.5 transition-colors flex-shrink-0 flex items-center justify-center shadow shadow-teal-600/10 active:scale-95"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Right Side: Host trigger & User Dropdown */}
-        <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+        {/* Right Side: Navigation Links & User Dropdown */}
+        <div className="hidden md:flex items-center gap-2 lg:gap-4 flex-shrink-0">
+          <button
+            onClick={() => router.push('/about')}
+            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
+          >
+            About Us
+          </button>
+          <button
+            onClick={() => router.push('/pricing')}
+            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
+          >
+            Pricing
+          </button>
+          <button
+            onClick={() => router.push('/contact')}
+            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
+          >
+            Contact
+          </button>
+          <button
+            onClick={() => router.push('/search-spaces')}
+            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
+          >
+            Search Spaces
+          </button>
           <button
             onClick={() => router.push('/list-your-space')}
-            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3.5 rounded-xl hover:bg-slate-50"
+            className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
           >
             List Your Space
           </button>
@@ -279,17 +201,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Hamburger / Search toggle for Mobile screens */}
+        {/* Hamburger toggle for Mobile screens */}
         <div className="flex md:hidden items-center gap-2.5">
-          {!isSearchPage && (
-            <button
-              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-              className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-all border border-slate-200/50"
-            >
-              <Search className="w-4.5 h-4.5" />
-            </button>
-          )}
-
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 hover:bg-slate-100 rounded-full text-slate-700 transition-all border border-slate-200/50"
@@ -299,53 +212,6 @@ export default function Navbar() {
         </div>
 
       </div>
-
-      {/* Mobile search bar expandable drawer */}
-      <AnimatePresence>
-        {!isSearchPage && isSearchExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden overflow-hidden border-t border-slate-150 mt-3 pt-3"
-          >
-            <form onSubmit={handleNavSearch} className="flex flex-col gap-2 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Location search..."
-                  value={navLocation}
-                  onChange={(e) => setNavLocation(e.target.value)}
-                  className="bg-transparent text-sm font-semibold outline-none text-slate-800 placeholder-slate-400 w-full"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
-                <Building className="w-4 h-4 text-slate-400" />
-                <select
-                  value={navSpaceType}
-                  onChange={(e) => setNavSpaceType(e.target.value)}
-                  className="bg-transparent text-sm font-semibold outline-none text-slate-800 w-full cursor-pointer"
-                >
-                  <option value="">Any Space Type</option>
-                  {SPACE_TYPES.filter(o => o.value !== '').map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm py-2.5 rounded-xl shadow mt-1 flex items-center justify-center gap-2 active:scale-97 transition-all"
-              >
-                <Search className="w-4 h-4" />
-                Search Available Spaces
-              </button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Mobile Drawer Menu Overlay */}
       <AnimatePresence>
