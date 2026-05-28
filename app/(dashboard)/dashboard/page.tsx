@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Clock,
   ExternalLink,
+  Stethoscope
 } from 'lucide-react'
 import ListingCard from '@/components/listings/ListingCard'
 
@@ -278,11 +279,11 @@ function DashboardPage() {
   const draftCount = listings.filter((l) => l.status === 'DRAFT' || l.status === 'PENDING').length
 
   const navigationItems = [
-    { id: 'listings', label: 'My Listings', icon: Building, show: isOwner },
-    { id: 'add-listing', label: 'Add Listing', icon: Plus, show: isOwner, action: () => router.push('/add-listing') },
+    { id: 'listings', label: 'My Clinic Spaces', icon: Building, show: true },
+    { id: 'add-listing', label: 'Add Listing', icon: Plus, show: true, action: () => router.push('/add-listing') },
     { id: 'bookings', label: 'Bookings', icon: Calendar, show: true },
     { id: 'profile', label: 'Profile Details', icon: Settings, show: true },
-    { id: 'subscription', label: 'Subscription Plan', icon: CreditCard, show: isOwner },
+    { id: 'subscription', label: 'Subscription Plan', icon: CreditCard, show: true },
   ]
 
   return (
@@ -291,13 +292,20 @@ function DashboardPage() {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 sticky top-0 h-screen justify-between p-6">
         <div className="space-y-8">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
             <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Building className="w-5 h-5" />
+              <Stethoscope className="w-4 h-4" />
             </div>
-            <span className="font-bold text-slate-900 tracking-tight text-lg">
-              LinkMedical<span className="text-teal-600">Spaces</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-slate-900 tracking-tight text-lg leading-none">
+                LinkMedical<span className="text-teal-600 font-black">Spaces</span>
+              </span>
+              <div className="bg-teal-600 text-white w-full text-center mt-1 py-[1px] rounded-sm">
+                <span className="text-[8px] font-bold tracking-[0.3em] uppercase leading-none">
+                  ORLANDO
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Navigation Links */}
@@ -356,13 +364,20 @@ function DashboardPage() {
       {/* Mobile Top Navigation & Bottom Navigation */}
       <div className="md:hidden flex flex-col w-full z-50">
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex items-center justify-between sticky top-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
             <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Building className="w-4 h-4" />
+              <Stethoscope className="w-4 h-4" />
             </div>
-            <span className="font-bold text-slate-900 tracking-tight text-base">
-              LinkMedical<span className="text-teal-600">Spaces</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-slate-900 tracking-tight text-base leading-none">
+                LinkMedical<span className="text-teal-600 font-black">Spaces</span>
+              </span>
+              <div className="bg-teal-600 text-white w-full text-center mt-0.5 py-[1px] rounded-sm">
+                <span className="text-[7px] font-bold tracking-[0.3em] uppercase leading-none">
+                  ORLANDO
+                </span>
+              </div>
+            </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: '/signin' })}
@@ -412,7 +427,7 @@ function DashboardPage() {
             </p>
           </div>
 
-          {activeTab === 'listings' && isOwner && (
+          {activeTab === 'listings' && (
             <button
               onClick={() => router.push('/add-listing')}
               className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-teal-600/20 active:scale-95 transition-all text-sm self-start sm:self-auto"
@@ -423,8 +438,8 @@ function DashboardPage() {
           )}
         </div>
 
-        {/* Stats Row - Displayed for Listings tab in Owner view */}
-        {activeTab === 'listings' && isOwner && (
+        {/* Stats Row - Displayed for Listings tab */}
+        {activeTab === 'listings' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
               <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Listings</span>
@@ -450,7 +465,7 @@ function DashboardPage() {
         {/* TAB CONTENTS */}
         <div className="min-h-[400px]">
           {/* TAB: Listings */}
-          {activeTab === 'listings' && isOwner && (
+          {activeTab === 'listings' && (
             <div className="space-y-6">
               {loadingListings ? (
                 <div className="flex items-center justify-center py-20">

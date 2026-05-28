@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building } from 'lucide-react'
+import { Building, Twitter, Linkedin, Facebook, Instagram, Stethoscope } from 'lucide-react'
 
 export default function Footer() {
   const router = useRouter()
@@ -10,15 +10,22 @@ export default function Footer() {
     <footer className="bg-slate-900 border-t border-slate-800 py-12 px-6 font-sans">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-10">
         
-        {/* Brand details */}
-        <div className="space-y-4 max-w-sm">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white shadow-md">
-              <Building className="w-4.5 h-4.5" />
+        {/* Branding & Logo */}
+        <div className="flex flex-col gap-4 max-w-sm">
+          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => window.scrollTo(0,0)}>
+            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
+              <Stethoscope className="w-4.5 h-4.5" />
             </div>
-            <span className="font-extrabold text-white tracking-tight text-lg">
-              LinkMedical<span className="text-teal-500 font-black">Spaces</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-white tracking-tight text-lg leading-none">
+                LinkMedical<span className="text-teal-500 font-black">Spaces</span>
+              </span>
+              <div className="bg-teal-500 text-slate-900 w-full text-center mt-1 py-[1px] rounded-sm">
+                <span className="text-[9px] font-bold tracking-[0.3em] uppercase leading-none">
+                  ORLANDO
+                </span>
+              </div>
+            </div>
           </div>
           <p className="text-slate-400 text-sm leading-relaxed">
             The Airbnb for medical and dental office listings. Connecting healthcare specialists with verified clinical rooms, labs, and surgical suites.
