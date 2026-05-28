@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import {  useState, useEffect, useRef , Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Loader } from '@googlemaps/js-api-loader'
@@ -95,7 +95,7 @@ const SUBLEASE_INSPIRATIONS = [
   "Something else we haven't thought of",
 ]
 
-export default function AddListingPage() {
+function AddListingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1309,4 +1309,13 @@ export default function AddListingPage() {
       <Footer />
     </div>
   )
+}
+
+
+export default function AddListingPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <AddListingPage />
+    </Suspense>
+  );
 }

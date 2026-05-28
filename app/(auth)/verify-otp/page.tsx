@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import {  useState, useRef, useEffect, useCallback , Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { Stethoscope, Mail, RefreshCw, CheckCircle2, ArrowLeft } from 'lucide-re
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN = 60 // seconds
 
-export default function VerifyOTPPage() {
+function VerifyOTPPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
@@ -328,4 +328,13 @@ export default function VerifyOTPPage() {
       </p>
     </div>
   )
+}
+
+
+export default function VerifyOTPPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <VerifyOTPPage />
+    </Suspense>
+  );
 }

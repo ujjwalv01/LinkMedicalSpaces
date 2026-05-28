@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import {  useState , Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -8,7 +8,7 @@ import { Check, Loader2, Building, ShieldCheck, HelpCircle, ArrowRight, User } f
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
-export default function PricingPage() {
+function PricingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -263,4 +263,13 @@ export default function PricingPage() {
       <Footer />
     </div>
   )
+}
+
+
+export default function PricingPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <PricingPage />
+    </Suspense>
+  );
 }

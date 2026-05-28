@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import {  useState, useEffect , Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
@@ -10,7 +10,7 @@ import Footer from '@/components/Footer'
 
 import AuthModal from '@/components/AuthModal'
 
-export default function ListYourSpacePage() {
+function ListYourSpacePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status: authStatus } = useSession()
@@ -226,4 +226,13 @@ export default function ListYourSpacePage() {
       />
     </div>
   )
+}
+
+
+export default function ListYourSpacePageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ListYourSpacePage />
+    </Suspense>
+  );
 }

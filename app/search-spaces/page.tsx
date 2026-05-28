@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import {  useState, useEffect, useRef , Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Loader } from '@googlemaps/js-api-loader'
@@ -70,7 +70,7 @@ const SPACE_TYPE_OPTIONS = [
   { value: 'URGENT_CARE', label: 'Urgent Care' },
 ]
 
-export default function SearchSpacesPage() {
+function SearchSpacesPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1151,4 +1151,13 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave }: GridCardProps)
 
     </div>
   )
+}
+
+
+export default function SearchSpacesPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SearchSpacesPage />
+    </Suspense>
+  );
 }

@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import {  useEffect, useState, useCallback , Suspense } from 'react'
 import { motion } from 'framer-motion'
 import {
   User as UserIcon,
@@ -26,7 +26,7 @@ import ListingCard from '@/components/listings/ListingCard'
 
 type TabType = 'listings' | 'bookings' | 'profile' | 'subscription'
 
-export default function DashboardPage() {
+function DashboardPage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -880,4 +880,13 @@ export default function DashboardPage() {
       )}
     </div>
   )
+}
+
+
+export default function DashboardPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <DashboardPage />
+    </Suspense>
+  );
 }
