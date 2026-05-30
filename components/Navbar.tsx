@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { Loader } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
+  Building,
   Search,
   MapPin,
   Menu,
