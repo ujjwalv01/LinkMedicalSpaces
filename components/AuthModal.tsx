@@ -100,13 +100,10 @@ export default function AuthModal({ isOpen, onClose, callbackUrl = '/dashboard' 
             <X className="w-5 h-5" />
           </button>
 
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {tab === 'signup' ? 'Create an account' : 'Welcome back'}
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-semibold text-slate-400">
+              {tab === 'signup' ? 'Create an account' : 'Sign in to your account'}
             </h2>
-            <p className="text-slate-500 mt-1 text-sm">
-              {tab === 'signup' ? 'Join thousands of medical professionals' : 'Sign in to your account'}
-            </p>
           </div>
 
           {/* Tabs */}
