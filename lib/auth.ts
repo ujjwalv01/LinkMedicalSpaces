@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
+import { cookies } from 'next/headers'
 
 // Admin email domains — auto-assign ADMIN role
 const ADMIN_DOMAINS = ['mediatree.co.in', 'mediatree.com']
@@ -100,14 +101,20 @@ export const authOptions: NextAuthOptions = {
         })
 
         // Upsert user — auto-assign role
-        const role = isAdminEmail(email) ? 'ADMIN' : undefined
+        let roleToAssign = isAdminEmail(email) ? 'ADMIN' : undefined
+        if (!roleToAssign) {
+          try {
+            const intent = cookies().get('signup_intent')?.value
+            if (intent === 'OWNER') roleToAssign = 'OWNER'
+          } catch {}
+        }
 
         const user = await prisma.user.upsert({
           where: { email },
-          update: { ...(role ? { role } : {}) },
+          update: { ...(roleToAssign ? { role: roleToAssign } : {}) },
           create: {
             email,
-            role: role ?? 'SEEKER',
+            role: roleToAssign ?? 'SEEKER',
             verificationStatus: 'PENDING',
             subscriptionStatus: 'INACTIVE',
           },
@@ -139,20 +146,26 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
         const email = user.email.toLowerCase()
-        const role = isAdminEmail(email) ? 'ADMIN' : undefined
+        let roleToAssign = isAdminEmail(email) ? 'ADMIN' : undefined
+        if (!roleToAssign) {
+          try {
+            const intent = cookies().get('signup_intent')?.value
+            if (intent === 'OWNER') roleToAssign = 'OWNER'
+          } catch {}
+        }
 
         await prisma.user.upsert({
           where: { email },
           update: {
             name: user.name ?? undefined,
             image: user.image ?? undefined,
-            ...(role ? { role } : {}),
+            ...(roleToAssign ? { role: roleToAssign } : {}),
           },
           create: {
             email,
             name: user.name,
             image: user.image,
-            role: role ?? 'SEEKER',
+            role: roleToAssign ?? 'SEEKER',
             verificationStatus: 'PENDING',
             subscriptionStatus: 'INACTIVE',
           },
@@ -162,7 +175,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     // ── JWT — embed user data ───────────────────────────────────────────────
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = (user as any).role
