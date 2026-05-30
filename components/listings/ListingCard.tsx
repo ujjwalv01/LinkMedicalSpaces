@@ -1,6 +1,6 @@
 'use client'
 
-import { Edit, Trash2, MapPin, Building, Clock } from 'lucide-react'
+import { Edit, Trash2, MapPin, Building, Clock, Image as ImageIcon } from 'lucide-react'
 
 export interface ListingCardProps {
   listing: {
@@ -31,7 +31,7 @@ export default function ListingCard({
   onDelete,
   onContinue,
 }: ListingCardProps) {
-  const mainImage = listing.media?.[0]?.originalUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800'
+  const mainImage = listing.media?.[0]?.originalUrl
   const spaceTypeLabel = listing.spaceType ? listing.spaceType.replace(/_/g, ' ') : 'Medical Space'
 
   // Determine the display price
@@ -76,12 +76,19 @@ export default function ListingCard({
   return (
     <div className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
       {/* Listing Image */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-        <img
-          src={mainImage}
-          alt={listing.title || 'Listing draft'}
-          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
-        />
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 flex items-center justify-center">
+        {mainImage ? (
+          <img
+            src={mainImage}
+            alt={listing.title || 'Listing draft'}
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-slate-300">
+            <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">No Image</span>
+          </div>
+        )}
 
         {/* Status Badge */}
         {listing.status && (

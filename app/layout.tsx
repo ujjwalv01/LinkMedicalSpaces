@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   },
   description:
     'The only platform dedicated to medical office spaces. Find exam rooms, surgical suites, dental offices, and more to lease, sublet, or share.',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
   keywords: [
     'medical office space',
     'doctor office rental',

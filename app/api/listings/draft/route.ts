@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
           title: data.title ?? undefined,
           rooms: data.rooms ?? undefined,
           squareFeet: data.squareFeet ?? undefined,
-          amenities: data.amenities ? JSON.stringify(data.amenities) : undefined,
+          amenities: data.amenities ? data.amenities : undefined,
           address: data.address ?? undefined,
           city: data.city ?? undefined,
           state: data.state ?? undefined,
@@ -123,64 +123,33 @@ export async function POST(req: NextRequest) {
         },
       })
     } else {
-      // Check if a draft already exists for this user (to prevent multiple orphan drafts)
-      const existingDraft = await prisma.listing.findFirst({
-        where: { userId, status: 'DRAFT' },
-        orderBy: { updatedAt: 'desc' },
+      // No id provided → always create a brand new draft
+      const slug = `draft-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`
+      
+      draftListing = await prisma.listing.create({
+        data: {
+          userId,
+          status: 'DRAFT',
+          slug,
+          spaceType: data.spaceType || null,
+          title: data.title || null,
+          description: data.description || null,
+          rooms: data.rooms || 1,
+          squareFeet: data.squareFeet || null,
+          amenities: data.amenities ? data.amenities : [],
+          address: data.address || null,
+          city: data.city || null,
+          state: data.state || null,
+          country: data.country || 'US',
+          zipCode: data.zipCode || null,
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
+          pricePerHour: data.pricePerHour || null,
+          pricePerDay: data.pricePerDay || null,
+          pricePerMonth: data.pricePerMonth || null,
+          availabilityHours: data.availabilityHours ? (data.availabilityHours as any) : {},
+        },
       })
-
-      if (existingDraft) {
-        draftListing = await prisma.listing.update({
-          where: { id: existingDraft.id },
-          data: {
-            spaceType: data.spaceType ?? undefined,
-            title: data.title ?? undefined,
-            rooms: data.rooms ?? undefined,
-            squareFeet: data.squareFeet ?? undefined,
-            amenities: data.amenities ? JSON.stringify(data.amenities) : undefined,
-            address: data.address ?? undefined,
-            city: data.city ?? undefined,
-            state: data.state ?? undefined,
-            zipCode: data.zipCode ?? undefined,
-            country: data.country ?? undefined,
-            latitude: data.latitude ?? undefined,
-            longitude: data.longitude ?? undefined,
-            description: data.description ?? undefined,
-            pricePerHour: data.pricePerHour ?? undefined,
-            pricePerDay: data.pricePerDay ?? undefined,
-            pricePerMonth: data.pricePerMonth ?? undefined,
-            availabilityHours: data.availabilityHours !== undefined ? (data.availabilityHours as any) : undefined,
-          },
-        })
-      } else {
-        // Create new draft listing with a unique temporary slug
-        const slug = `draft-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`
-        
-        draftListing = await prisma.listing.create({
-          data: {
-            userId,
-            status: 'DRAFT',
-            slug,
-            spaceType: data.spaceType || null,
-            title: data.title || null,
-            description: data.description || null,
-            rooms: data.rooms || 1,
-            squareFeet: data.squareFeet || null,
-            amenities: data.amenities ? JSON.stringify(data.amenities) : '[]',
-            address: data.address || null,
-            city: data.city || null,
-            state: data.state || null,
-            country: data.country || 'US',
-            zipCode: data.zipCode || null,
-            latitude: data.latitude || null,
-            longitude: data.longitude || null,
-            pricePerHour: data.pricePerHour || null,
-            pricePerDay: data.pricePerDay || null,
-            pricePerMonth: data.pricePerMonth || null,
-            availabilityHours: data.availabilityHours ? (data.availabilityHours as any) : {},
-          },
-        })
-      }
     }
 
     return NextResponse.json(draftListing)

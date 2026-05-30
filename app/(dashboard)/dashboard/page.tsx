@@ -482,7 +482,7 @@ function DashboardPage() {
                       showActions={true}
                       onDelete={handleDeleteListing}
                       onEdit={(id) => setEditingListing(item)}
-                      onContinue={(id) => router.push(`/add-listing?draftId=${id}`)}
+                      onContinue={(id) => router.push(`/add-listing?region=orlando&draftId=${id}`)}
                     />
                   ))}
                 </div>

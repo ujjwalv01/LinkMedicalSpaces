@@ -33,10 +33,11 @@ export default withAuth(
         return response
       }
       
-      // If they are logged in and trying to go to /add-listing without a region
+      // If they are logged in and trying to go to /add-listing without a region or draftId
       if (req.nextUrl.pathname.startsWith('/add-listing')) {
         const region = req.nextUrl.searchParams.get('region')
-        if (!region) {
+        const draftId = req.nextUrl.searchParams.get('draftId')
+        if (!region && !draftId) {
           return NextResponse.redirect(new URL('/list-your-space', req.url))
         }
       }
