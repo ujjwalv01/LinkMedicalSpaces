@@ -292,20 +292,12 @@ function DashboardPage() {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 sticky top-0 h-screen justify-between p-6">
         <div className="space-y-8">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Stethoscope className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-slate-900 tracking-tight text-lg leading-none">
-                LinkMedical<span className="text-teal-600 font-black">Spaces</span>
-              </span>
-              <div className="bg-teal-600 text-white w-full text-center mt-1 py-[1px] rounded-sm">
-                <span className="text-[8px] font-bold tracking-[0.3em] uppercase leading-none">
-                  ORLANDO
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
+            <img 
+              src="/logo-new.png" 
+              alt="LinkMedicalSpaces Orlando" 
+              className="h-10 w-auto object-contain"
+            />
           </div>
 
           {/* Navigation Links */}
@@ -364,20 +356,12 @@ function DashboardPage() {
       {/* Mobile Top Navigation & Bottom Navigation */}
       <div className="md:hidden flex flex-col w-full z-50">
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex items-center justify-between sticky top-0">
-          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
-            <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Stethoscope className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-slate-900 tracking-tight text-base leading-none">
-                LinkMedical<span className="text-teal-600 font-black">Spaces</span>
-              </span>
-              <div className="bg-teal-600 text-white w-full text-center mt-0.5 py-[1px] rounded-sm">
-                <span className="text-[7px] font-bold tracking-[0.3em] uppercase leading-none">
-                  ORLANDO
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
+            <img 
+              src="/logo-new.png" 
+              alt="LinkMedicalSpaces Orlando" 
+              className="h-8 w-auto object-contain"
+            />
           </div>
           <button
             onClick={() => signOut({ callbackUrl: '/signin' })}

@@ -12,20 +12,12 @@ export default function Footer() {
         
         {/* Branding & Logo */}
         <div className="flex flex-col gap-4 max-w-sm">
-          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => window.scrollTo(0,0)}>
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
-              <Stethoscope className="w-4.5 h-4.5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-white tracking-tight text-lg leading-none">
-                LinkMedical<span className="text-teal-500 font-black">Spaces</span>
-              </span>
-              <div className="bg-teal-500 text-slate-900 w-full text-center mt-1 py-[1px] rounded-sm">
-                <span className="text-[9px] font-bold tracking-[0.3em] uppercase leading-none">
-                  ORLANDO
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => window.scrollTo(0,0)}>
+            <img 
+              src="/logo-new.png" 
+              alt="LinkMedicalSpaces Orlando" 
+              className="h-10 sm:h-12 w-auto object-contain rounded-md"
+            />
           </div>
           <p className="text-slate-400 text-sm leading-relaxed">
             The Airbnb for medical and dental office listings. Connecting healthcare specialists with verified clinical rooms, labs, and surgical suites.

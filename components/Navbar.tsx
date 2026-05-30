@@ -67,20 +67,12 @@ export default function Navbar() {
       <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
         
         {/* Left Side: Logo */}
-        <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
-          <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-600/20">
-            <Stethoscope className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-extrabold text-slate-900 tracking-tight text-lg sm:text-xl leading-none">
-              LinkMedical<span className="text-teal-600 font-black">Spaces</span>
-            </span>
-            <div className="bg-teal-600 text-white w-full text-center mt-0.5 py-[1px] rounded-sm">
-              <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.3em] uppercase leading-none">
-                ORLANDO
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => router.push('/')}>
+          <img 
+            src="/logo-new.png" 
+            alt="LinkMedicalSpaces Orlando" 
+            className="h-10 sm:h-12 w-auto object-contain"
+          />
         </div>
 
         {/* Right Side: Navigation Links & User Dropdown */}
