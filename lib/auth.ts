@@ -185,24 +185,24 @@ export const authOptions: NextAuthOptions = {
 
         // Fetch onboarded if not present (e.g. initial Google sign-in where role/status is fetched)
         if (token.email) {
-          const dbUser = await prisma.user.findUnique({
+          const dbUser = (await prisma.user.findUnique({
             where: { email: token.email.toLowerCase() },
-            select: { id: true, onboarded: true, role: true, verificationStatus: true, subscriptionStatus: true, userSubType: true },
-          })
+            select: { id: true, onboarded: true, role: true, verificationStatus: true, subscriptionStatus: true, userSubType: true } as any,
+          })) as any
           if (dbUser) {
             token.id = dbUser.id
             token.role = dbUser.role
             token.verificationStatus = dbUser.verificationStatus
             token.subscriptionStatus = dbUser.subscriptionStatus
             token.onboarded = dbUser.onboarded
-            token.userSubType = dbUser.userSubType
+            token.userSubType = (dbUser as any).userSubType
           }
         }
       }
 
       // Re-fetch on session update trigger
       if (trigger === 'update' && token.id) {
-        const dbUser = await prisma.user.findUnique({
+        const dbUser = (await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
             role: true,
@@ -212,14 +212,14 @@ export const authOptions: NextAuthOptions = {
             userSubType: true,
             name: true,
             image: true,
-          },
-        })
+          } as any,
+        })) as any
         if (dbUser) {
           token.role = dbUser.role
           token.verificationStatus = dbUser.verificationStatus
           token.subscriptionStatus = dbUser.subscriptionStatus
           token.onboarded = dbUser.onboarded
-          token.userSubType = dbUser.userSubType
+          token.userSubType = (dbUser as any).userSubType
           token.name = dbUser.name
           token.picture = dbUser.image
         }
