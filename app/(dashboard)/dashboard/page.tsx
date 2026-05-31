@@ -262,6 +262,7 @@ function DashboardPage() {
 
   const user = session.user
   const role = user.role || 'SEEKER'
+  const userSubType = (user as any).userSubType
   const isOwner = role === 'OWNER' || role === 'ADMIN' || role === 'SUPER_ADMIN'
   const subscriptionStatus = (user as any).subscriptionStatus || 'INACTIVE'
   const isSubscribed = subscriptionStatus === 'ACTIVE'
@@ -338,9 +339,16 @@ function DashboardPage() {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900 line-clamp-1">{profileName || 'Professional'}</p>
-              <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded capitalize">
-                {role.toLowerCase()}
-              </span>
+              <div className="flex gap-1.5 mt-1">
+                <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded capitalize">
+                  {role.toLowerCase()}
+                </span>
+                {userSubType && (
+                  <span className="text-[10px] bg-teal-50 text-teal-600 font-bold px-1.5 py-0.5 rounded">
+                    {userSubType}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button

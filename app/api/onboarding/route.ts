@@ -5,10 +5,8 @@ import prisma from '@/lib/prisma'
 import { z } from 'zod'
 
 const OnboardingSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  bio: z.string().optional().or(z.literal('')),
-  image: z.string().url().optional().or(z.literal('')),
+  userType: z.enum(['OWNER', 'SEEKER']),
+  userSubType: z.enum(['Doctor', 'Staff', 'Real Estate Agent']),
 })
 
 export async function POST(req: NextRequest) {
@@ -23,21 +21,19 @@ export async function POST(req: NextRequest) {
 
     if (!parsedData.success) {
       return NextResponse.json(
-        { error: parsedData.error.issues[0]?.message ?? 'Invalid validation' },
+        { error: parsedData.error.issues[0]?.message ?? 'Invalid data' },
         { status: 400 }
       )
     }
 
-    const { name, phone, bio, image } = parsedData.data
+    const { userType, userSubType } = parsedData.data
 
-    // Update the user profile and mark onboarded as true
+    // Update the user role, sub-type, and mark as onboarded
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        name: name || undefined,
-        phone: phone || undefined,
-        bio: bio || undefined,
-        image: image || undefined,
+        role: userType as any,
+        userSubType,
         onboarded: true,
       },
     })

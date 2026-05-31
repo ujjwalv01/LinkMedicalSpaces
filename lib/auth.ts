@@ -111,10 +111,10 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.upsert({
           where: { email },
-          update: { ...(roleToAssign ? { role: roleToAssign } : {}) },
+          update: { ...(roleToAssign ? { role: roleToAssign as any } : {}) },
           create: {
             email,
-            role: roleToAssign ?? 'SEEKER',
+            role: (roleToAssign ?? 'SEEKER') as any,
             verificationStatus: 'PENDING',
             subscriptionStatus: 'INACTIVE',
           },
@@ -159,13 +159,13 @@ export const authOptions: NextAuthOptions = {
           update: {
             name: user.name ?? undefined,
             image: user.image ?? undefined,
-            ...(roleToAssign ? { role: roleToAssign } : {}),
+            ...(roleToAssign ? { role: roleToAssign as any } : {}),
           },
           create: {
             email,
             name: user.name,
             image: user.image,
-            role: roleToAssign ?? 'SEEKER',
+            role: (roleToAssign ?? 'SEEKER') as any,
             verificationStatus: 'PENDING',
             subscriptionStatus: 'INACTIVE',
           },
@@ -187,7 +187,7 @@ export const authOptions: NextAuthOptions = {
         if (token.email) {
           const dbUser = await prisma.user.findUnique({
             where: { email: token.email.toLowerCase() },
-            select: { id: true, onboarded: true, role: true, verificationStatus: true, subscriptionStatus: true },
+            select: { id: true, onboarded: true, role: true, verificationStatus: true, subscriptionStatus: true, userSubType: true },
           })
           if (dbUser) {
             token.id = dbUser.id
@@ -195,6 +195,7 @@ export const authOptions: NextAuthOptions = {
             token.verificationStatus = dbUser.verificationStatus
             token.subscriptionStatus = dbUser.subscriptionStatus
             token.onboarded = dbUser.onboarded
+            token.userSubType = dbUser.userSubType
           }
         }
       }
@@ -208,6 +209,7 @@ export const authOptions: NextAuthOptions = {
             verificationStatus: true,
             subscriptionStatus: true,
             onboarded: true,
+            userSubType: true,
             name: true,
             image: true,
           },
@@ -217,6 +219,7 @@ export const authOptions: NextAuthOptions = {
           token.verificationStatus = dbUser.verificationStatus
           token.subscriptionStatus = dbUser.subscriptionStatus
           token.onboarded = dbUser.onboarded
+          token.userSubType = dbUser.userSubType
           token.name = dbUser.name
           token.picture = dbUser.image
         }
@@ -233,6 +236,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).verificationStatus = token.verificationStatus as string
         ;(session.user as any).subscriptionStatus = token.subscriptionStatus as string
         ;(session.user as any).onboarded = token.onboarded as boolean
+        ;(session.user as any).userSubType = token.userSubType as string | null
       }
       return session
     },

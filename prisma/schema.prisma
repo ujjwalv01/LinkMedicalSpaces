@@ -1,6 +1,3 @@
-// LinkMedicalSpaces — Prisma Schema
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,9 +7,159 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────────────────────────────────────
+model User {
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  name               String?
+  image              String?
+  password           String?
+  onboarded          Boolean            @default(false)
+  phone              String?
+  bio                String?
+  role               UserRole           @default(SEEKER)
+  verificationStatus VerificationStatus @default(PENDING)
+  mciNumber          String?
+  documentUrl        String?
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionId     String?
+  subscriptionExpiry DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  userSubType        String?
+  accounts           Account[]
+  bookings           Booking[]
+  listings           Listing[]
+  sessions           Session[]
+  subscription       Subscription?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Listing {
+  id                String         @id @default(cuid())
+  title             String?
+  slug              String         @unique
+  description       String?
+  status            ListingStatus  @default(DRAFT)
+  userId            String
+  spaceType         String?
+  rooms             Int?           @default(1)
+  squareFeet        Float?
+  pricePerHour      Float?
+  pricePerDay       Float?
+  pricePerMonth     Float?
+  address           String?
+  city              String?
+  state             String?
+  country           String         @default("US")
+  zipCode           String?
+  latitude          Float?
+  longitude         Float?
+  amenities         Json           @default("[]")
+  availabilityHours Json           @default("{}")
+  viewCount         Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  bookings          Booking[]
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media             ListingMedia[]
+
+  @@index([city])
+  @@index([state])
+  @@index([status])
+  @@index([userId])
+  @@index([spaceType])
+}
+
+model ListingMedia {
+  id           String    @id @default(cuid())
+  listingId    String
+  type         MediaType @default(IMAGE)
+  originalUrl  String
+  optimizedUrl String?
+  caption      String?
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+model Booking {
+  id                    String        @id @default(cuid())
+  listingId             String
+  userId                String
+  startDate             DateTime
+  endDate               DateTime
+  totalPrice            Float
+  status                BookingStatus @default(PENDING)
+  stripePaymentIntentId String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  listing               Listing       @relation(fields: [listingId], references: [id])
+  user                  User          @relation(fields: [userId], references: [id])
+
+  @@index([listingId])
+  @@index([userId])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(INACTIVE)
+  planName             String             @default("Annual")
+  amount               Float              @default(120.00)
+  startDate            DateTime?
+  endDate              DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
 
 enum UserRole {
   SEEKER
@@ -51,222 +198,4 @@ enum BookingStatus {
   CANCELLED
   COMPLETED
   REJECTED
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// USER
-// ─────────────────────────────────────────────────────────────────────────────
-
-model User {
-  id                 String             @id @default(cuid())
-  email              String             @unique
-  name               String?
-  image              String?
-  password           String?            // Hashed — for credentials provider
-
-  // Onboarding
-  onboarded          Boolean            @default(false)
-  phone              String?
-  bio                String?
-
-  // Role & Verification
-  role               UserRole           @default(SEEKER)
-  verificationStatus VerificationStatus @default(PENDING)
-  mciNumber          String?            // Medical Council of India / License number
-  documentUrl        String?            // Uploaded license / certificate (Cloudinary URL)
-
-  // Subscription
-  subscriptionStatus SubscriptionStatus @default(INACTIVE)
-  subscriptionId     String?            // Stripe subscription ID
-  subscriptionExpiry DateTime?
-
-  // Timestamps
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  // NextAuth relations
-  accounts           Account[]
-  sessions           Session[]
-
-  // App relations
-  listings           Listing[]
-  bookings           Booking[]
-  subscription       Subscription?
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NEXTAUTH — Account & Session (required for Prisma adapter)
-// ─────────────────────────────────────────────────────────────────────────────
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LISTING
-// ─────────────────────────────────────────────────────────────────────────────
-
-model Listing {
-  id               String        @id @default(cuid())
-  title            String?
-  slug             String        @unique
-  description      String?       @db.Text
-
-  // Status & ownership
-  status           ListingStatus @default(DRAFT)
-  userId           String
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Space details
-  spaceType        String?        // e.g. "Exam Room", "Surgical Suite", "Dental Office"
-  rooms            Int?          @default(1)
-  squareFeet       Float?
-
-  // Pricing (all optional — owners set what applies)
-  pricePerHour     Float?
-  pricePerDay      Float?
-  pricePerMonth    Float?
-
-  // Location
-  address          String?
-  city             String?
-  state            String?
-  country          String        @default("US")
-  zipCode          String?
-  latitude         Float?
-  longitude        Float?
-
-  // Flexible JSON fields
-  amenities        Json          @default("[]")   // string[]
-  availabilityHours Json         @default("{}")   // { monday: { open: "09:00", close: "17:00" }, ... }
-
-  // Meta
-  viewCount        Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  // Relations
-  media            ListingMedia[]
-  bookings         Booking[]
-
-  @@index([city])
-  @@index([state])
-  @@index([status])
-  @@index([userId])
-  @@index([spaceType])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LISTING MEDIA
-// ─────────────────────────────────────────────────────────────────────────────
-
-model ListingMedia {
-  id           String    @id @default(cuid())
-  listingId    String
-  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  type         MediaType @default(IMAGE)
-  originalUrl  String                         // Raw upload URL (Cloudinary)
-  optimizedUrl String?                        // Transformed/compressed URL
-  caption      String?
-  order        Int       @default(0)          // Display sort order
-
-  createdAt    DateTime  @default(now())
-
-  @@index([listingId])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOKING
-// ─────────────────────────────────────────────────────────────────────────────
-
-model Booking {
-  id          String        @id @default(cuid())
-  listingId   String
-  listing     Listing       @relation(fields: [listingId], references: [id])
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
-
-  startDate   DateTime
-  endDate     DateTime
-  totalPrice  Float
-  status      BookingStatus @default(PENDING)
-
-  // Optional payment reference
-  stripePaymentIntentId String?
-
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([listingId])
-  @@index([userId])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SUBSCRIPTION
-// ─────────────────────────────────────────────────────────────────────────────
-
-model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  stripeSubscriptionId String?            @unique
-  status               SubscriptionStatus @default(INACTIVE)
-  planName             String             @default("Annual")  // e.g. "Annual", "Monthly"
-  amount               Float              @default(120.00)    // $120/year default
-
-  startDate            DateTime?
-  endDate              DateTime?
-
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OTP CODE  (for email magic-link / 6-digit OTP flow)
-// ─────────────────────────────────────────────────────────────────────────────
-
-model OtpCode {
-  id        String   @id @default(cuid())
-  email     String
-  code      String   // 6-digit OTP (stored as plain or hashed)
-  expiresAt DateTime
-  attempts  Int      @default(0)
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([email])
 }

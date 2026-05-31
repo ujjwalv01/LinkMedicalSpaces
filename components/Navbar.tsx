@@ -176,13 +176,13 @@ export default function Navbar() {
                   ) : (
                     <>
                       <button
-                        onClick={() => { setIsDropdownOpen(false); router.push('/signin') }}
+                        onClick={() => { setIsDropdownOpen(false); router.push('/signin?callbackUrl=/') }}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         Sign In
                       </button>
                       <button
-                        onClick={() => { setIsDropdownOpen(false); router.push('/signup') }}
+                        onClick={() => { setIsDropdownOpen(false); router.push('/signup?callbackUrl=/') }}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
                       >
                         Sign Up
@@ -281,13 +281,13 @@ export default function Navbar() {
                   <>
                     <div className="border-t border-slate-100 my-2" />
                     <button
-                      onClick={() => { setIsMobileMenuOpen(false); router.push('/signin') }}
+                      onClick={() => { setIsMobileMenuOpen(false); router.push('/signin?callbackUrl=/') }}
                       className="w-full text-left font-bold text-slate-700 hover:text-teal-600 text-sm py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                       Sign In
                     </button>
                     <button
-                      onClick={() => { setIsMobileMenuOpen(false); router.push('/signup') }}
+                      onClick={() => { setIsMobileMenuOpen(false); router.push('/signup?callbackUrl=/') }}
                       className="w-full text-center font-extrabold bg-teal-600 text-white text-xs py-3 rounded-xl shadow-md mt-2 active:scale-97 transition-all"
                     >
                       Sign Up Free

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building, Twitter, Linkedin, Facebook, Instagram, Stethoscope } from 'lucide-react'
+import { Building, Stethoscope } from 'lucide-react'
 
 export default function Footer() {
   const router = useRouter()
