@@ -118,24 +118,11 @@ function OnboardingPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to complete onboarding')
 
-      // Update NextAuth session to reflect onboarded status
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          role: userType,
-          userSubType,
-          onboarded: true,
-        },
-      })
+      // Tell NextAuth to refresh the token from the DB
+      await update()
 
-      // Redirect based on where they came from
-      if (callbackUrl) {
-        router.push(callbackUrl)
-      } else {
-        // Direct sign-in (no specific destination) → go to landing page
-        router.push('/')
-      }
+      // Perform a hard redirect to ensure fresh server state
+      window.location.href = callbackUrl || '/'
     } catch (err: any) {
       setError(err.message || 'Onboarding failed')
     } finally {
