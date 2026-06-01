@@ -67,7 +67,7 @@ function AddListingPage() {
   const [draftId, setDraftId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<{ message: string, step?: number } | null>(null)
   const [loadingDraft, setLoadingDraft] = useState(true)
 
   const [entireOffice, setEntireOffice] = useState<boolean | null>(null)
@@ -490,28 +490,78 @@ function AddListingPage() {
   }
 
   const handleSubmit = async () => {
-    if (!draftId) return
     if (!streetAddress || !city || !state || !zipCode || (state === 'Other' && !otherState)) {
-      setSubmitError('Please fill in your complete address.')
+      setSubmitError({ message: 'Please fill in your complete address.', step: 2 })
+      return
+    }
+    if (targetProfessionals.length === 0) {
+      setSubmitError({ message: 'Please select at least one professional category.', step: 3 })
+      return
+    }
+    if (entireOffice === null) {
+      setSubmitError({ message: 'Please specify if your entire office is available.', step: 3 })
+      return
+    }
+    if (!availability) {
+      setSubmitError({ message: 'Please specify if the space is available full time or part time.', step: 3 })
+      return
+    }
+    if (!leaseType) {
+      setSubmitError({ message: 'Please specify the lease type.', step: 3 })
+      return
+    }
+    if (!constructionType) {
+      setSubmitError({ message: 'Please select the construction type.', step: 4 })
+      return
+    }
+    if (!description || description.trim().length < 10) {
+      setSubmitError({ message: 'Please provide a description of at least 10 characters.', step: 5 })
+      return
+    }
+    if (!featuredImage) {
+      setSubmitError({ message: 'Please upload a featured image for your space.', step: 6 })
+      return
+    }
+    if (!monthlyRent || parseFloat(monthlyRent) <= 0) {
+      setSubmitError({ message: 'Please provide a valid monthly base rent.', step: 7 })
+      return
+    }
+    if (!relationship) {
+      setSubmitError({ message: 'Please specify your relationship to the property.', step: 7 })
+      return
+    }
+    if (!contactName.trim() || !contactEmail.trim() || !contactPhone.trim()) {
+      setSubmitError({ message: 'Please provide complete contact details (Name, Email, Phone).', step: 7 })
       return
     }
     if (!attestation1 || !attestation2 || !attestation3) {
-      setSubmitError('Please accept all attestation checkboxes.')
+      setSubmitError({ message: 'Please accept all attestation checkboxes.', step: 8 })
       return
     }
     if (!signatureName.trim()) {
-      setSubmitError('Please provide your electronic signature.')
+      setSubmitError({ message: 'Please provide your electronic signature.', step: 8 })
       return
     }
 
     setSubmitting(true)
     setSubmitError(null)
+
+    let currentDraftId = draftId
+    if (!currentDraftId) {
+      currentDraftId = await ensureDraftId()
+      if (!currentDraftId) {
+        setSubmitError({ message: 'Failed to initialize listing draft.' })
+        setSubmitting(false)
+        return
+      }
+    }
+
     try {
       await fetch('/api/listings/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: draftId,
+          id: currentDraftId,
           spaceType: 'EXAM_ROOM',
           title: `Medical Space at ${streetAddress}, ${city}`,
           rooms: examRooms ? parseInt(examRooms) : 1,
@@ -544,22 +594,22 @@ function AddListingPage() {
         }),
       })
 
-      await fetch(`/api/listings/${draftId}/pricing`, {
+      await fetch(`/api/listings/${currentDraftId}/pricing`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null }),
       })
 
-      const publishRes = await fetch(`/api/listings/${draftId}/publish`, { method: 'PUT' })
+      const publishRes = await fetch(`/api/listings/${currentDraftId}/publish`, { method: 'PUT' })
       const publishData = await publishRes.json()
 
       if (publishRes.ok && publishData.success) {
         setSubmitSuccess(true)
       } else {
-        setSubmitError(publishData.error || 'Failed to submit listing.')
+        setSubmitError({ message: publishData.error || 'Failed to submit listing.' })
       }
     } catch (err: any) {
-      setSubmitError(err.message || 'Submission failed.')
+      setSubmitError({ message: err.message || 'Submission failed.' })
     } finally {
       setSubmitting(false)
     }
@@ -711,20 +761,20 @@ function AddListingPage() {
                 
                 <h2 className="text-xl font-bold text-[#1a2b49] pt-4">Confirm your address</h2>
                 <div className="bg-white border-2 border-slate-200 rounded-2xl divide-y divide-slate-200 overflow-hidden">
-                  <input type="text" placeholder="Street Address" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
+                  <input type="text" placeholder="Street Address *" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
                   <input type="text" placeholder="Street Address line 2 (optional)" value={streetAddress2} onChange={e => setStreetAddress2(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
-                  <input type="text" placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
+                  <input type="text" placeholder="City *" value={city} onChange={e => setCity(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
                   <div className="relative">
-                    <label className="absolute left-4 top-1.5 text-[10px] font-semibold text-slate-400">State / Province</label>
+                    <label className="absolute left-4 top-1.5 text-[10px] font-semibold text-slate-400">State / Province <span className="text-red-500">*</span></label>
                     <select value={state} onChange={e => setState(e.target.value)} className="w-full appearance-none bg-white px-4 pt-6 pb-2 text-sm font-medium outline-none cursor-pointer">
                       {US_STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                   {state === 'Other' && (
-                    <input type="text" placeholder="Enter state or province name..." value={otherState} onChange={e => setOtherState(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none bg-slate-50 border-t border-slate-200" />
+                    <input type="text" placeholder="Enter state or province name... *" value={otherState} onChange={e => setOtherState(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none bg-slate-50 border-t border-slate-200" />
                   )}
-                  <input type="text" placeholder="Zip Code" value={zipCode} onChange={e => setZipCode(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
+                  <input type="text" placeholder="Zip Code *" value={zipCode} onChange={e => setZipCode(e.target.value)} className="w-full px-4 py-4 text-sm font-medium outline-none" />
                 </div>
              </div>
            )}
@@ -734,7 +784,7 @@ function AddListingPage() {
                <h1 className="text-3xl font-bold text-[#1a2b49]">Tell us about your place</h1>
                
                <div className="flex flex-col gap-4">
-                 <label className="text-lg font-semibold text-[#1a2b49]">Which professionals is your space available to?</label>
+                 <label className="text-lg font-semibold text-[#1a2b49]">Which professionals is your space available to? <span className="text-red-500">*</span></label>
                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                  <ChoiceBox
                    label="Physicians (MD/DO)"
@@ -754,7 +804,7 @@ function AddListingPage() {
                <hr className="border-slate-200" />
 
                <div className="flex flex-col gap-4">
-                 <label className="text-lg font-semibold text-[#1a2b49]">Is your entire office available for leasing?</label>
+                 <label className="text-lg font-semibold text-[#1a2b49]">Is your entire office available for leasing? <span className="text-red-500">*</span></label>
                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                    <ChoiceBox
                      label="Yes"
@@ -776,7 +826,7 @@ function AddListingPage() {
                <hr className="border-slate-200" />
 
                <div className="flex flex-col gap-2">
-                 <label className="text-lg font-semibold text-[#1a2b49]">How many exam rooms are available?</label>
+                 <label className="text-lg font-semibold text-[#1a2b49]">How many exam rooms are available? <span className="text-red-500">*</span></label>
                  <div className="flex items-center gap-5 pt-2">
                    <button type="button" onClick={() => setExamRooms(Math.max(1, parseInt(examRooms || '1') - 1).toString())} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled={parseInt(examRooms || '1') <= 1}>
                      <Minus className="w-5 h-5" />
@@ -791,7 +841,7 @@ function AddListingPage() {
                <hr className="border-slate-200" />
 
                <div className="flex flex-col gap-4">
-                 <label className="text-lg font-semibold text-[#1a2b49]">Is your space available full time or part-time?</label>
+                 <label className="text-lg font-semibold text-[#1a2b49]">Is your space available full time or part-time? <span className="text-red-500">*</span></label>
                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                    <ChoiceBox
                      label="Full Time"
@@ -813,7 +863,7 @@ function AddListingPage() {
                <hr className="border-slate-200" />
                
                <div className="flex flex-col gap-4">
-                 <label className="text-lg font-semibold text-[#1a2b49]">Lease type</label>
+                 <label className="text-lg font-semibold text-[#1a2b49]">Lease type <span className="text-red-500">*</span></label>
                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                    <ChoiceBox
                      label="Primary Lease"
@@ -868,7 +918,7 @@ function AddListingPage() {
                   <hr className="border-slate-200" />
 
                   <div className="flex flex-col gap-4">
-                    <label className="text-lg font-semibold text-[#1a2b49]">Construction Type</label>
+                    <label className="text-lg font-semibold text-[#1a2b49]">Construction Type <span className="text-red-500">*</span></label>
                     <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                       <ChoiceBox label="New Construction" icon={Hammer} small selected={constructionType === 'new'} onClick={() => setConstructionType('new')} />
                       <ChoiceBox label="Established Building" icon={Building} small selected={constructionType === 'established'} onClick={() => setConstructionType('established')} />
@@ -881,7 +931,7 @@ function AddListingPage() {
            {currentStep === 5 && (
              <div className="space-y-8">
                <div className="space-y-2">
-                 <h1 className="text-3xl font-bold text-[#1a2b49]">Create your description</h1>
+                 <h1 className="text-3xl font-bold text-[#1a2b49]">Create your description <span className="text-red-500">*</span></h1>
                  <p className="text-slate-500">Share what makes your place special.</p>
                </div>
                
@@ -903,7 +953,7 @@ function AddListingPage() {
                
                <div className="space-y-6">
                  <div>
-                   <label className="text-lg font-bold text-[#1a2b49] block mb-3">Featured Image</label>
+                   <label className="text-lg font-bold text-[#1a2b49] block mb-3">Featured Image <span className="text-red-500">*</span></label>
                    {featuredImage ? (
                      <div className="relative w-full aspect-[4/3] sm:aspect-video rounded-2xl overflow-hidden border-2 border-slate-200 group">
                        <img src={featuredImage.originalUrl} alt="Featured" className="w-full h-full object-cover" />
@@ -915,7 +965,7 @@ function AddListingPage() {
                      <div {...featuredDropzone.getRootProps()} className="border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-2xl p-12 cursor-pointer transition-colors text-center flex flex-col items-center justify-center min-h-[300px]">
                        <input {...featuredDropzone.getInputProps()} />
                        <UploadCloud className="w-12 h-12 text-slate-400 mb-4" />
-                       <p className="text-lg font-semibold text-slate-700">Drag your photo here</p>
+                       <p className="text-lg font-semibold text-slate-700">Drag your photo here *</p>
                        <p className="text-sm text-slate-500 mt-2">or click to browse</p>
                      </div>
                    )}
@@ -961,12 +1011,12 @@ function AddListingPage() {
 
            {currentStep === 7 && (
              <div className="space-y-8">
-               <h1 className="text-3xl font-bold text-[#1a2b49]">Now, set your monthly base rent</h1>
+               <h1 className="text-3xl font-bold text-[#1a2b49]">Now, set your monthly base rent <span className="text-red-500">*</span></h1>
                <p className="text-slate-500">You can change it anytime.</p>
                <div className="flex justify-center py-10">
                  <div className="relative max-w-sm w-full">
                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-4xl font-bold text-slate-900">$</span>
-                   <input type="number" value={monthlyRent} onChange={e => setMonthlyRent(e.target.value)} placeholder="0" className="w-full pl-16 pr-6 py-6 border-2 border-slate-200 focus:border-slate-800 rounded-3xl text-4xl font-extrabold text-slate-900 outline-none transition-colors text-center shadow-sm" />
+                   <input type="number" value={monthlyRent} onChange={e => setMonthlyRent(e.target.value)} placeholder="0 *" className="w-full pl-16 pr-6 py-6 border-2 border-slate-200 focus:border-slate-800 rounded-3xl text-4xl font-extrabold text-slate-900 outline-none transition-colors text-center shadow-sm" />
                  </div>
                </div>
                
@@ -976,7 +1026,7 @@ function AddListingPage() {
                  <h2 className="text-2xl font-bold text-[#1a2b49]">Contact & Relationship</h2>
                  
                  <div className="space-y-4">
-                    <label className="text-lg font-semibold text-[#1a2b49] block">Your relationship to the property</label>
+                    <label className="text-lg font-semibold text-[#1a2b49] block">Your relationship to the property <span className="text-red-500">*</span></label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <ChoiceBox label="Property Owner/Tenant" icon={User} small selected={relationship === 'owner'} onClick={() => setRelationship('owner')} />
                       <ChoiceBox label="Broker/Agent" icon={Users} small selected={relationship === 'broker'} onClick={() => setRelationship('broker')} />
@@ -985,9 +1035,9 @@ function AddListingPage() {
 
                  <div className="space-y-4 pt-8">
                     <label className="text-lg font-semibold text-[#1a2b49] block mb-2">Contact details</label>
-                   <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Contact Person Name" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
-                   <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="Email Address" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
-                   <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Phone Number" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
+                   <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Contact Person Name *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
+                   <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="Email Address *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
+                   <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Phone Number *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
                  </div>
                </div>
              </div>
@@ -1048,16 +1098,26 @@ function AddListingPage() {
                    </label>
 
                    <div className="pt-4">
-                     <input type="text" value={signatureName} onChange={e => setSignatureName(e.target.value)} placeholder="Type your full name as electronic signature" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
+                     <input type="text" value={signatureName} onChange={e => setSignatureName(e.target.value)} placeholder="Type your full name as electronic signature *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
                    </div>
                  </div>
 
-                 {submitError && (
-                   <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl">
-                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                     {submitError}
-                   </div>
-                 )}
+                  {submitError && (
+                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                      <div>
+                        {submitError.message}
+                        {submitError.step && (
+                          <button 
+                            onClick={() => { setCurrentStep(submitError.step!); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="ml-2 underline font-bold hover:text-red-900 transition-colors"
+                          >
+                            Go to Step {submitError.step}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                </div>
              </div>
            )}
