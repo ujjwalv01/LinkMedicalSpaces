@@ -59,8 +59,12 @@ function OnboardingPage() {
   useEffect(() => {
     if (intentParam === 'lister') {
       setUserType('OWNER')
+      setCurrentStep(2)
     } else if (intentParam === 'seeker') {
       setUserType('SEEKER')
+      setCurrentStep(2)
+    } else {
+      setCurrentStep(1)
     }
   }, [intentParam])
 
@@ -83,20 +87,17 @@ function OnboardingPage() {
 
   const handleNext = () => {
     if (currentStep === 1) {
+      if (!userType) return
       setCurrentStep(2)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else if (currentStep === 2) {
-      if (!userType) return
-      setCurrentStep(3)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else if (currentStep === 3) {
       if (!userSubType) return
       handleSubmit()
     }
   }
 
   const handleBack = () => {
-    if (currentStep > 1) {
+    if (currentStep > 1 && !intentParam) {
       setCurrentStep(prev => prev - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -122,7 +123,15 @@ function OnboardingPage() {
       await update()
 
       // Perform a hard redirect to ensure fresh server state
-      window.location.href = callbackUrl || '/'
+      if (callbackUrl) {
+        window.location.href = callbackUrl
+      } else {
+        if (userType === 'OWNER') {
+          window.location.href = '/list-your-space'
+        } else {
+          window.location.href = '/search-spaces'
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Onboarding failed')
     } finally {
@@ -130,7 +139,7 @@ function OnboardingPage() {
     }
   }
 
-  const TOTAL_STEPS = 3
+  const TOTAL_STEPS = 2
   const progressPercent = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100
 
   return (
@@ -147,61 +156,12 @@ function OnboardingPage() {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col items-center pb-32 px-6 ${currentStep === 1 ? 'justify-center' : 'pt-10'}`}>
-        <div className={`w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ${currentStep === 1 ? 'max-w-[1300px]' : 'max-w-2xl space-y-8'}`}>
+      <main className={`flex-1 flex flex-col items-center pb-32 px-6 pt-10`}>
+        <div className={`w-full animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl space-y-8`}>
 
-          {/* ─── Step 1: Welcome ─────────────────────────────────────────── */}
           <AnimatePresence mode="wait">
+            {/* ─── Step 1: User Type ───────────────────────────────────────── */}
             {currentStep === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="flex flex-col md:flex-row items-center justify-between gap-10 lg:gap-24 py-10 md:py-20"
-              >
-                {/* Left Side — Heading */}
-                <div className="flex-[1.2] text-left pr-4 lg:pr-10">
-                  <h1 className="text-[44px] md:text-[54px] lg:text-[64px] font-semibold text-[#1a2b49] leading-[1.15] tracking-tight">
-                    Welcome to Link<br className="hidden lg:block" /> <span className="text-[#E51D53]">Medical</span> Spaces
-                  </h1>
-                  <p className="text-slate-500 mt-6 leading-relaxed text-[17px] max-w-md">
-                    Hi <span className="font-semibold text-[#1a2b49]">{session?.user?.name || 'there'}</span>, we're thrilled to have you here. Let's set up your account so you can get the most out of our platform.
-                  </p>
-                </div>
-
-                {/* Right Side — Info cards */}
-                <div className="flex-1 w-full max-w-[550px] space-y-10 md:space-y-12">
-                  <div className="flex gap-6 items-start border-b border-slate-100 pb-10">
-                    <div className="text-2xl font-semibold text-[#1a2b49] pt-1">1</div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-semibold text-[#1a2b49]">Choose your role</h3>
-                      <p className="text-slate-500 mt-3 leading-relaxed text-[17px]">Tell us whether you want to list your medical space or find one to rent.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-6 items-start border-b border-slate-100 pb-10">
-                    <div className="text-2xl font-semibold text-[#1a2b49] pt-1">2</div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-semibold text-[#1a2b49]">Tell us about yourself</h3>
-                      <p className="text-slate-500 mt-3 leading-relaxed text-[17px]">Select your professional background so we can personalize your experience.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-6 items-start">
-                    <div className="text-2xl font-semibold text-[#1a2b49] pt-1">3</div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-semibold text-[#1a2b49]">Start exploring</h3>
-                      <p className="text-slate-500 mt-3 leading-relaxed text-[17px]">You're all set! Begin listing your space or searching for the perfect office.</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ─── Step 2: User Type ───────────────────────────────────────── */}
-            {currentStep === 2 && (
               <motion.div
                 key="step2"
                 initial={{ opacity: 0, y: 20 }}
@@ -240,10 +200,10 @@ function OnboardingPage() {
               </motion.div>
             )}
 
-            {/* ─── Step 3: Sub-Type ────────────────────────────────────────── */}
-            {currentStep === 3 && (
+            {/* ─── Step 2: Sub-Type ────────────────────────────────────────── */}
+            {currentStep === 2 && (
               <motion.div
-                key="step3"
+                key="step2"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -294,17 +254,15 @@ function OnboardingPage() {
       {/* Bottom Navigation Bar — same style as add-listing */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
         {/* Progress Bar */}
-        {currentStep > 1 && (
-          <div className="h-1.5 w-full bg-slate-100 absolute top-0 left-0">
-            <div
-              className="h-full bg-[#1a2b49] transition-all duration-300 ease-in-out"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        )}
+        <div className="h-1.5 w-full bg-slate-100 absolute top-0 left-0">
+          <div
+            className="h-full bg-[#1a2b49] transition-all duration-300 ease-in-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
 
-        <div className={`flex items-center px-8 py-4 ${currentStep === 1 ? 'justify-end' : 'justify-between'}`}>
-          {currentStep > 1 && (
+        <div className={`flex items-center px-8 py-4 ${!(currentStep > 1 && !intentParam) ? 'justify-end' : 'justify-between'}`}>
+          {(currentStep > 1 && !intentParam) && (
             <button
               onClick={handleBack}
               className="font-semibold text-[#1a2b49] hover:bg-slate-100 px-5 py-2.5 rounded-lg transition-colors"
@@ -315,15 +273,13 @@ function OnboardingPage() {
 
           <button
             onClick={handleNext}
-            disabled={submitting || (currentStep === 2 && !userType) || (currentStep === 3 && !userSubType)}
+            disabled={submitting || (currentStep === 1 && !userType) || (currentStep === 2 && !userSubType)}
             className={`font-bold text-white px-8 py-3.5 rounded-lg transition-all active:scale-95 flex items-center gap-2 ${
-              currentStep === 1 ? 'bg-[#E51D53] hover:bg-rose-600' :
-              currentStep === 3 ? 'bg-[#E51D53] hover:bg-rose-600' :
-              'bg-[#1a2b49] hover:bg-[#0f1d33]'
+              currentStep === 2 ? 'bg-[#E51D53] hover:bg-rose-600' : 'bg-[#1a2b49] hover:bg-[#0f1d33]'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-            {currentStep === 1 ? 'Get Started' : currentStep === 3 ? 'Complete Setup' : 'Next'}
+            {!submitting && (currentStep === 2 ? (userType === 'OWNER' ? 'List Your First Space' : 'Find Your Medical Office') : 'Next')}
             {!submitting && <ArrowRight className="w-4 h-4" />}
           </button>
         </div>

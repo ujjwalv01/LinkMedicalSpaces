@@ -19,13 +19,8 @@ export default withAuth(
     if (token && onboarded === false && !req.nextUrl.pathname.startsWith('/onboarding')) {
       const onboardingUrl = new URL('/onboarding', req.url)
       
-      // Determine intent from cookie or current path
-      const intentCookie = req.cookies.get('signup_intent')?.value
-      if (intentCookie === 'OWNER') {
-        onboardingUrl.searchParams.set('intent', 'lister')
-      } else if (intentCookie === 'SEEKER') {
-        onboardingUrl.searchParams.set('intent', 'seeker')
-      } else if (req.nextUrl.pathname.startsWith('/list-your-space') || req.nextUrl.pathname.startsWith('/add-listing')) {
+      // Determine intent from current path
+      if (req.nextUrl.pathname.startsWith('/list-your-space') || req.nextUrl.pathname.startsWith('/add-listing')) {
         onboardingUrl.searchParams.set('intent', 'lister')
       } else if (req.nextUrl.pathname.startsWith('/search-spaces')) {
         onboardingUrl.searchParams.set('intent', 'seeker')
@@ -91,6 +86,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    '/',
     '/search-spaces/:path*',
     '/list-your-space/:path*',
     '/add-listing/:path*',
