@@ -13,7 +13,7 @@ import {
   CheckCircle, XCircle, Clock, Hourglass, FileText, PenTool,
   Sofa, Droplet, Coffee, Briefcase, HelpCircle,
   Zap, Wifi, Sparkles, Hammer, Building,
-  User, Users, Mail, Phone, Home, Minus
+  User, Users, Mail, Phone, Home, Minus, X
 } from 'lucide-react'
 
 const uploadWithProgress = (url: string, formData: FormData, onProgress: (p: number) => void): Promise<any> => {
@@ -114,7 +114,10 @@ function AddListingPage() {
   const [mapsLoaded, setMapsLoaded] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const autocompleteInputRef = useRef<HTMLInputElement>(null)
+  const isImageProcessing = useRef<boolean>(false)
+  const featuredImageRef = useRef<any>(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -217,6 +220,7 @@ function AddListingPage() {
               const photos = media.filter((m: any) => m.type === 'IMAGE')
               const videos = media.filter((m: any) => m.type === 'VIDEO')
               if (photos.length > 0) {
+                featuredImageRef.current = photos[0]
                 setFeaturedImage(photos[0])
                 setAdditionalImages(photos.slice(1))
               }
@@ -313,45 +317,60 @@ function AddListingPage() {
     return null
   }
 
-  const handleFeaturedImageUpload = async (files: File[]) => {
-    if (files.length === 0) return
-    const currentDraftId = await ensureDraftId()
-    if (!currentDraftId) return
-    const file = files[0]
-    const key = `featured-${Date.now()}`
-    setPhotoUploadProgress(p => ({ ...p, [key]: 5 }))
+  const handleImageUpload = async (files: File[]) => {
+    if (isImageProcessing.current) return
+    isImageProcessing.current = true
+    
     try {
-      const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.8 })
-      const formData = new FormData()
-      formData.append('file', compressed, file.name)
-      formData.append('listingId', currentDraftId)
-      const data = await uploadWithProgress('/api/upload/image', formData, (p: number) => setPhotoUploadProgress(prev => ({ ...prev, [key]: p })))
-      setFeaturedImage(data.media)
-    } catch (err: any) {
-      console.error(err)
-    } finally {
-      setPhotoUploadProgress(p => { const c = { ...p }; delete c[key]; return c })
-    }
-  }
-
-  const handleAdditionalImageUpload = async (files: File[]) => {
-    const currentDraftId = await ensureDraftId()
-    if (!currentDraftId) return
-    for (const file of files) {
-      const key = `additional-${Date.now()}-${Math.random()}`
-      setPhotoUploadProgress(p => ({ ...p, [key]: 5 }))
-      try {
-        const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.8 })
-        const formData = new FormData()
-        formData.append('file', compressed, file.name)
-        formData.append('listingId', currentDraftId)
-        const data = await uploadWithProgress('/api/upload/image', formData, (p: number) => setPhotoUploadProgress(prev => ({ ...prev, [key]: p })))
-        setAdditionalImages(prev => [...prev, data.media])
-      } catch (err: any) {
-        console.error(err)
-      } finally {
-        setPhotoUploadProgress(p => { const c = { ...p }; delete c[key]; return c })
+      const currentDraftId = await ensureDraftId()
+      if (!currentDraftId) return
+      for (const file of files) {
+        const tempId = `local-${Date.now()}-${Math.random()}`
+        const localUrl = URL.createObjectURL(file)
+        const optimisticMedia = { id: tempId, originalUrl: localUrl, uploading: true }
+        
+        // Use ref for synchronous check — never nest setState calls
+        if (!featuredImageRef.current) {
+          featuredImageRef.current = optimisticMedia
+          setFeaturedImage(optimisticMedia)
+        } else {
+          setAdditionalImages(prev => [...prev, optimisticMedia])
+        }
+        
+        // Upload in background without blocking
+        ;(async () => {
+          const key = `image-${tempId}`
+          setPhotoUploadProgress(p => ({ ...p, [key]: 5 }))
+          try {
+            const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.8 })
+            const formData = new FormData()
+            formData.append('file', compressed, file.name)
+            formData.append('listingId', currentDraftId)
+            const data = await uploadWithProgress('/api/upload/image', formData, (p: number) => setPhotoUploadProgress(prev => ({ ...prev, [key]: p })))
+            
+            // Replace optimistic preview with real data — no nested setState
+            if (featuredImageRef.current?.id === tempId) {
+              featuredImageRef.current = data.media
+              setFeaturedImage(data.media)
+            } else {
+              setAdditionalImages(prev => prev.map(img => img.id === tempId ? data.media : img))
+            }
+          } catch (err: any) {
+            console.error(err)
+            // Remove failed upload — no nested setState
+            if (featuredImageRef.current?.id === tempId) {
+              featuredImageRef.current = null
+              setFeaturedImage(null)
+            } else {
+              setAdditionalImages(prev => prev.filter(img => img.id !== tempId))
+            }
+          } finally {
+            setPhotoUploadProgress(p => { const c = { ...p }; delete c[key]; return c })
+          }
+        })()
       }
+    } finally {
+      setTimeout(() => { isImageProcessing.current = false }, 300)
     }
   }
 
@@ -370,7 +389,16 @@ function AddListingPage() {
     const publicId = match ? match[1] : null
     if (!publicId) return
     try {
-      if (type === 'featured') setFeaturedImage(null)
+      if (type === 'featured') {
+        // Read current additional images and promote first one, no nested setState
+        setAdditionalImages(prev => {
+          const remaining = [...prev]
+          const promoted = remaining.shift() || null
+          featuredImageRef.current = promoted
+          setFeaturedImage(promoted)
+          return remaining
+        })
+      }
       else if (type === 'video') setPropertyVideo(null)
       else setAdditionalImages(prev => prev.filter((p: any) => p.id !== imageId))
       await fetch(`/api/upload/${publicId}`, { method: 'DELETE' })
@@ -397,8 +425,7 @@ function AddListingPage() {
     }
   }
 
-  const featuredDropzone = useDropzone({ onDrop: handleFeaturedImageUpload, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }, maxFiles: 1 })
-  const additionalDropzone = useDropzone({ onDrop: handleAdditionalImageUpload, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] } })
+  const imageDropzone = useDropzone({ onDrop: handleImageUpload, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] } })
   const videoDropzone = useDropzone({ onDrop: handleVideoUpload, accept: { 'video/*': ['.mp4', '.mov', '.webm'] }, maxFiles: 1 })
 
   const generateAIDescription = async () => {
@@ -490,6 +517,10 @@ function AddListingPage() {
   }
 
   const handleSubmit = async () => {
+    if (!latitude || !longitude) {
+      setSubmitError({ message: 'Please search and select your address from the "Enter address" dropdown to set the map location.', step: 2 })
+      return
+    }
     if (!streetAddress || !city || !state || !zipCode || (state === 'Other' && !otherState)) {
       setSubmitError({ message: 'Please fill in your complete address.', step: 2 })
       return
@@ -514,12 +545,12 @@ function AddListingPage() {
       setSubmitError({ message: 'Please select the construction type.', step: 4 })
       return
     }
-    if (!description || description.trim().length < 10) {
-      setSubmitError({ message: 'Please provide a description of at least 10 characters.', step: 5 })
+    if (!featuredImage) {
+      setSubmitError({ message: 'Please upload a featured image for your space.', step: 5 })
       return
     }
-    if (!featuredImage) {
-      setSubmitError({ message: 'Please upload a featured image for your space.', step: 6 })
+    if (!description || description.trim().length < 10) {
+      setSubmitError({ message: 'Please provide a description of at least 10 characters.', step: 6 })
       return
     }
     if (!monthlyRent || parseFloat(monthlyRent) <= 0) {
@@ -756,7 +787,7 @@ function AddListingPage() {
                 </div>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input ref={autocompleteInputRef} type="text" placeholder="Enter address" className="w-full pl-10 pr-4 py-4 border-2 border-slate-200 hover:border-slate-300 focus:border-slate-800 rounded-xl text-sm font-medium outline-none transition-colors" />
+                  <input ref={autocompleteInputRef} type="text" placeholder="Enter address *" className="w-full pl-10 pr-4 py-4 border-2 border-slate-200 hover:border-slate-300 focus:border-slate-800 rounded-xl text-sm font-medium outline-none transition-colors" />
                 </div>
                 
                 <h2 className="text-xl font-bold text-[#1a2b49] pt-4">Confirm your address</h2>
@@ -928,7 +959,7 @@ function AddListingPage() {
              </div>
            )}
 
-           {currentStep === 5 && (
+           {currentStep === 6 && (
              <div className="space-y-8">
                <div className="space-y-2">
                  <h1 className="text-3xl font-bold text-[#1a2b49]">Create your description <span className="text-red-500">*</span></h1>
@@ -944,49 +975,62 @@ function AddListingPage() {
              </div>
            )}
 
-           {currentStep === 6 && (
+           {currentStep === 5 && (
              <div className="space-y-8">
                <div className="space-y-2">
                  <h1 className="text-3xl font-bold text-[#1a2b49]">Add some photos of your space</h1>
-                 <p className="text-slate-500">You'll need a featured photo to get started. You can add more or make changes later.</p>
+                 <p className="text-slate-500">You'll need at least one photo to get started. The first photo will be used as the thumbnail.</p>
                </div>
                
                <div className="space-y-6">
                  <div>
-                   <label className="text-lg font-bold text-[#1a2b49] block mb-3">Featured Image <span className="text-red-500">*</span></label>
-                   {featuredImage ? (
-                     <div className="relative w-full aspect-[4/3] sm:aspect-video rounded-2xl overflow-hidden border-2 border-slate-200 group">
-                       <img src={featuredImage.originalUrl} alt="Featured" className="w-full h-full object-cover" />
-                       <button onClick={() => handleDeleteImage(featuredImage.id, featuredImage.originalUrl, 'featured')} className="absolute top-4 right-4 bg-white rounded-full p-2 text-slate-700 hover:text-red-600 shadow-md transition-colors opacity-0 group-hover:opacity-100">
-                         <Trash2 className="w-5 h-5" />
-                       </button>
-                     </div>
-                   ) : (
-                     <div {...featuredDropzone.getRootProps()} className="border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-2xl p-12 cursor-pointer transition-colors text-center flex flex-col items-center justify-center min-h-[300px]">
-                       <input {...featuredDropzone.getInputProps()} />
-                       <UploadCloud className="w-12 h-12 text-slate-400 mb-4" />
-                       <p className="text-lg font-semibold text-slate-700">Drag your photo here *</p>
-                       <p className="text-sm text-slate-500 mt-2">or click to browse</p>
-                     </div>
-                   )}
-                 </div>
-
-                 <div className="pt-6 border-t border-slate-200">
-                   <label className="text-lg font-bold text-[#1a2b49] block mb-3">Additional Images</label>
-                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                     {additionalImages.map(img => (
-                       <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
-                         <img src={img.originalUrl} alt="Additional" className="w-full h-full object-cover" />
-                         <button onClick={() => handleDeleteImage(img.id, img.originalUrl, 'additional')} className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100">
-                           <Trash2 className="w-4 h-4" />
-                         </button>
-                       </div>
-                     ))}
-                     <div {...additionalDropzone.getRootProps()} className="aspect-square border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-xl flex items-center justify-center cursor-pointer transition-colors">
-                       <input {...additionalDropzone.getInputProps()} />
-                       <Plus className="w-8 h-8 text-slate-400" />
-                     </div>
-                   </div>
+                   <label className="text-lg font-bold text-[#1a2b49] block mb-3">Photos <span className="text-red-500">*</span></label>
+                   
+                   <div className="overflow-hidden block">
+                      {!featuredImage ? (
+                        <div {...imageDropzone.getRootProps()} className="float-left w-full sm:w-[280px] h-[280px] mr-4 mb-4 border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors text-center p-4">
+                          <input {...imageDropzone.getInputProps()} />
+                          <UploadCloud className="w-12 h-12 text-slate-400 mb-4" />
+                          <p className="text-lg font-semibold text-slate-700">Drag your photo here *</p>
+                          <p className="text-sm text-slate-500 mt-2">or click to browse</p>
+                        </div>
+                      ) : (
+                        <div className="float-left w-[280px] h-[280px] mr-4 mb-4 relative rounded-xl overflow-hidden border-2 border-[#E51D53] group">
+                          <img src={featuredImage.originalUrl} alt="Thumbnail" onClick={() => setZoomedImage(featuredImage.originalUrl)} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                          {featuredImage.uploading ? (
+                            <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20">
+                              <Loader2 className="w-8 h-8 animate-spin text-[#E51D53]" />
+                            </div>
+                          ) : (
+                            <button onClick={() => handleDeleteImage(featuredImage.id, featuredImage.originalUrl, 'featured')} className="absolute top-3 right-3 bg-white/90 rounded-full p-2 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      
+                      {additionalImages.map(img => (
+                        <div key={img.id} className="float-left w-[132px] h-[132px] mr-4 mb-4 relative rounded-xl overflow-hidden border border-slate-200 group">
+                          <img src={img.originalUrl} alt="Additional" onClick={() => setZoomedImage(img.originalUrl)} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                          {img.uploading ? (
+                            <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20">
+                              <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
+                            </div>
+                          ) : (
+                            <button onClick={() => handleDeleteImage(img.id, img.originalUrl, 'additional')} className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {featuredImage && (
+                        <div {...imageDropzone.getRootProps()} className="float-left w-[132px] h-[132px] mr-4 mb-4 border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors text-center">
+                          <input {...imageDropzone.getInputProps()} />
+                          <Plus className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
+                    </div>
                  </div>
 
                  <div className="pt-6 border-t border-slate-200">
@@ -1109,7 +1153,11 @@ function AddListingPage() {
                         {submitError.message}
                         {submitError.step && (
                           <button 
-                            onClick={() => { setCurrentStep(submitError.step!); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            onClick={() => { 
+                              setCurrentStep(submitError.step!); 
+                              setSubmitError(null);
+                              window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                            }}
                             className="ml-2 underline font-bold hover:text-red-900 transition-colors"
                           >
                             Go to Step {submitError.step}
@@ -1143,18 +1191,30 @@ function AddListingPage() {
             
             <button 
               onClick={handleNext} 
-              disabled={submitting}
+              disabled={submitting || Object.keys(photoUploadProgress).length > 0}
               className={`font-bold text-white px-8 py-3.5 rounded-lg transition-all active:scale-95 flex items-center gap-2 ${
                 currentStep === 1 ? 'bg-[#E51D53] hover:bg-rose-600' : 
                 currentStep === TOTAL_STEPS ? 'bg-[#E51D53] hover:bg-rose-600' : 
                 'bg-slate-900 hover:bg-slate-800'
               } disabled:opacity-70 disabled:cursor-not-allowed`}
             >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              {submitting || Object.keys(photoUploadProgress).length > 0 ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
               {currentStep === 1 ? 'Get started' : currentStep === TOTAL_STEPS ? 'Publish' : 'Next'}
             </button>
          </div>
       </footer>
+
+      {zoomedImage && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
+          <button 
+            onClick={() => setZoomedImage(null)} 
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-2 rounded-full bg-black/50 transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full object-contain cursor-default" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   )
 }
