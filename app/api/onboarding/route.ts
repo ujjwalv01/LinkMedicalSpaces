@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true, message: 'Onboarding completed successfully.' })
-  } catch (error) {
-    console.error('[POST /api/onboarding]', error)
-    return NextResponse.json({ error: 'Failed to complete onboarding' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[POST /api/onboarding] Error:', error)
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'USER_NOT_FOUND' }, { status: 404 })
+    }
+    return NextResponse.json({ error: error?.message || 'Failed to complete onboarding' }, { status: 500 })
   }
 }

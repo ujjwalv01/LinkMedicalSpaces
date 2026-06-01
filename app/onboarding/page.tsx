@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -133,6 +133,13 @@ function OnboardingPage() {
         }
       }
     } catch (err: any) {
+      if (err.message === 'USER_NOT_FOUND') {
+        // The user's JWT cookie exists, but they were deleted from the database.
+        // Force a sign out and send them to signup.
+        await signOut({ redirect: false })
+        router.push('/signup')
+        return
+      }
       setError(err.message || 'Onboarding failed')
     } finally {
       setSubmitting(false)
