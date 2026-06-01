@@ -16,7 +16,7 @@ export default withAuth(
     // ── Onboarding gate ─────────────────────────────────────────────────
     // If user is authenticated but not onboarded, redirect to /onboarding
     // (except if they're already on /onboarding)
-    if (token && onboarded === false && !req.nextUrl.pathname.startsWith('/onboarding')) {
+    if (token && onboarded === false && !req.nextUrl.pathname.startsWith('/onboarding') && req.nextUrl.pathname !== '/') {
       const onboardingUrl = new URL('/onboarding', req.url)
       
       // Determine intent from current path
@@ -86,7 +86,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/',
     '/search-spaces/:path*',
     '/list-your-space/:path*',
     '/add-listing/:path*',
