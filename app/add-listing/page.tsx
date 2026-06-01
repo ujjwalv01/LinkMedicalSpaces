@@ -667,14 +667,14 @@ function AddListingPage() {
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col justify-between items-start text-left rounded-2xl border-2 transition-all ${small ? 'p-4 h-28' : 'p-5 h-36'} ${
+      className={`flex ${small ? 'flex-row items-center gap-4 px-5 h-20' : 'flex-col justify-between items-start p-5 h-36'} text-left rounded-2xl border-2 transition-all ${
         selected
           ? 'border-[#1a2b49] bg-[#1a2b49] shadow-md ring-1 ring-[#1a2b49]'
           : 'border-slate-200 hover:border-slate-800 bg-white'
       }`}
     >
-      <Icon className={`${small ? 'w-6 h-6' : 'w-8 h-8'} ${selected ? 'text-white' : 'text-slate-700'}`} />
-      <span className={`font-semibold ${small ? 'text-sm' : 'text-base'} ${selected ? 'text-white' : 'text-slate-900'}`}>{label}</span>
+      <Icon className={`${small ? 'w-6 h-6 flex-shrink-0' : 'w-8 h-8'} ${selected ? 'text-white' : 'text-slate-700'}`} />
+      <span className={`font-semibold ${small ? 'text-sm leading-snug' : 'text-base'} ${selected ? 'text-white' : 'text-slate-900'}`}>{label}</span>
     </button>
   )
 
@@ -820,12 +820,14 @@ function AddListingPage() {
                  <ChoiceBox
                    label="Physicians (MD/DO)"
                    icon={Stethoscope}
+                   small
                    selected={targetProfessionals.includes('Physicians (MD/DO)')}
                    onClick={() => toggleArrayItem(targetProfessionals, 'Physicians (MD/DO)', setTargetProfessionals)}
                  />
                  <ChoiceBox
                    label="Other Healthcare Professionals"
                    icon={Activity}
+                   small
                    selected={targetProfessionals.includes('Other Healthcare Professionals')}
                    onClick={() => toggleArrayItem(targetProfessionals, 'Other Healthcare Professionals', setTargetProfessionals)}
                  />
