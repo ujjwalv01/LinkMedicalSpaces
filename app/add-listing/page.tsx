@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Loader } from '@googlemaps/js-api-loader'
@@ -118,6 +118,11 @@ function AddListingPage() {
   const featuredImageRef = useRef<any>(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+
+  // Auto-save refs
+  const draftIdRef = useRef<string | null>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isInitialLoad = useRef(true)
 
   useEffect(() => {
     if (session?.user) {
@@ -243,6 +248,103 @@ function AddListingPage() {
     }
     initDraft()
   }, [status, searchParams])
+
+  // Keep draftIdRef in sync
+  useEffect(() => {
+    draftIdRef.current = draftId
+  }, [draftId])
+
+  // Build the payload used for both auto-save and manual save
+  const getDraftPayload = useCallback(() => {
+    return {
+      ...(draftIdRef.current ? { id: draftIdRef.current } : {}),
+      spaceType: 'EXAM_ROOM',
+      title: streetAddress ? `Medical Space at ${streetAddress}, ${city}` : 'Draft Listing',
+      rooms: examRooms ? parseInt(examRooms) : 1,
+      address: streetAddress,
+      city,
+      state: state === 'Other' ? otherState : state,
+      zipCode,
+      country: 'US',
+      latitude,
+      longitude,
+      description,
+      pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null,
+      amenities: [
+        ...amenitiesIncluded,
+        ...areasAvailable.map(a => `Area: ${a}`),
+        ...(areasAvailable.includes('Other') && otherAreaText ? [`Other Area: ${otherAreaText}`] : []),
+        ...(otherAmenities ? [`Other: ${otherAmenities}`] : []),
+        ...(entireOffice !== null ? [`Entire Office: ${entireOffice ? 'Yes' : 'No'}`] : []),
+        ...(availability ? [`Availability: ${availability}`] : []),
+        ...(leaseType ? [`Lease Type: ${leaseType}`] : []),
+        ...(constructionType ? [`Construction: ${constructionType}`] : []),
+        ...targetProfessionals.map(p => `Target: ${p}`),
+        ...(relationship ? [`Relationship: ${relationship}`] : []),
+        ...contactMethods.map(m => `Contact via: ${m}`),
+        ...(hearAboutUs ? [`Heard from: ${hearAboutUs}`] : []),
+        ...subleaseInspirations.map(s => `Inspiration: ${s}`),
+        ...(brandAmbassador !== null ? [`Brand Ambassador: ${brandAmbassador ? 'Yes' : 'No'}`] : []),
+      ],
+      availabilityHours: { contactName, contactEmail, contactPhone, signatureName, region },
+    }
+  }, [
+    streetAddress, city, state, otherState, zipCode, latitude, longitude,
+    examRooms, description, monthlyRent, amenitiesIncluded, areasAvailable,
+    otherAreaText, otherAmenities, entireOffice, availability, leaseType,
+    constructionType, targetProfessionals, relationship, contactMethods,
+    hearAboutUs, subleaseInspirations, brandAmbassador, contactName,
+    contactEmail, contactPhone, signatureName, region,
+  ])
+
+  // Auto-save to DB
+  const autoSaveDraft = useCallback(async () => {
+    if (status !== 'authenticated') return
+    try {
+      const payload = getDraftPayload()
+      const res = await fetch('/api/listings/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok && data?.id && !draftIdRef.current) {
+        draftIdRef.current = data.id
+        setDraftId(data.id)
+      }
+    } catch (err) {
+      console.error('Auto-save failed:', err)
+    }
+  }, [getDraftPayload, status])
+
+  // Debounced auto-save: triggers 2s after any form field changes (skips intro step & initial load)
+  useEffect(() => {
+    // Don't auto-save on intro step or while still loading draft data
+    if (currentStep <= 1 || loadingDraft) {
+      isInitialLoad.current = false
+      return
+    }
+    // Skip the very first render after draft loads (to avoid saving the loaded data right back)
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false
+      return
+    }
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      autoSaveDraft()
+    }, 2000)
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    }
+  }, [
+    currentStep, streetAddress, city, state, otherState, zipCode, latitude, longitude,
+    examRooms, description, monthlyRent, amenitiesIncluded, areasAvailable,
+    otherAreaText, otherAmenities, entireOffice, availability, leaseType,
+    constructionType, targetProfessionals, relationship, contactMethods,
+    hearAboutUs, subleaseInspirations, brandAmbassador, contactName,
+    contactEmail, contactPhone, signatureName, attestation1, attestation2,
+    attestation3, autoSaveDraft, loadingDraft,
+  ])
 
   useEffect(() => {
     if (currentStep !== 2) return // Only load map on step 2
@@ -462,38 +564,7 @@ function AddListingPage() {
 
   const handleSaveAndExit = async () => {
     try {
-      const payload = {
-        ...(draftId ? { id: draftId } : {}),
-        spaceType: 'EXAM_ROOM',
-        title: streetAddress ? `Medical Space at ${streetAddress}, ${city}` : 'Draft Listing',
-        rooms: examRooms ? parseInt(examRooms) : 1,
-        address: streetAddress,
-        city,
-        state: state === 'Other' ? otherState : state,
-        zipCode,
-        country: 'US',
-        latitude,
-        longitude,
-        description,
-        pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null,
-        amenities: [
-          ...amenitiesIncluded,
-          ...areasAvailable.map(a => `Area: ${a}`),
-          ...(areasAvailable.includes('Other') && otherAreaText ? [`Other Area: ${otherAreaText}`] : []),
-          ...(otherAmenities ? [`Other: ${otherAmenities}`] : []),
-          ...(entireOffice !== null ? [`Entire Office: ${entireOffice ? 'Yes' : 'No'}`] : []),
-          ...(availability ? [`Availability: ${availability}`] : []),
-          ...(leaseType ? [`Lease Type: ${leaseType}`] : []),
-          ...(constructionType ? [`Construction: ${constructionType}`] : []),
-          ...targetProfessionals.map(p => `Target: ${p}`),
-          ...(relationship ? [`Relationship: ${relationship}`] : []),
-          ...contactMethods.map(m => `Contact via: ${m}`),
-          ...(hearAboutUs ? [`Heard from: ${hearAboutUs}`] : []),
-          ...subleaseInspirations.map(s => `Inspiration: ${s}`),
-          ...(brandAmbassador !== null ? [`Brand Ambassador: ${brandAmbassador ? 'Yes' : 'No'}`] : []),
-        ],
-        availabilityHours: { contactName, contactEmail, contactPhone, signatureName, region },
-      }
+      const payload = getDraftPayload()
 
       const res = await fetch('/api/listings/draft', {
         method: 'POST',
@@ -501,7 +572,7 @@ function AddListingPage() {
         body: JSON.stringify(payload),
       })
       const savedDraft = await res.json()
-      const savedId = draftId || savedDraft?.id
+      const savedId = draftIdRef.current || savedDraft?.id
 
       if (savedId && monthlyRent) {
         await fetch(`/api/listings/${savedId}/pricing`, {
@@ -573,7 +644,7 @@ function AddListingPage() {
     setSubmitting(true)
     setSubmitError(null)
 
-    let currentDraftId = draftId
+    let currentDraftId = draftIdRef.current
     if (!currentDraftId) {
       currentDraftId = await ensureDraftId()
       if (!currentDraftId) {
@@ -584,41 +655,11 @@ function AddListingPage() {
     }
 
     try {
+      const payload = { ...getDraftPayload(), id: currentDraftId }
       await fetch('/api/listings/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: currentDraftId,
-          spaceType: 'EXAM_ROOM',
-          title: `Medical Space at ${streetAddress}, ${city}`,
-          rooms: examRooms ? parseInt(examRooms) : 1,
-          address: streetAddress,
-          city,
-          state: state === 'Other' ? otherState : state,
-          zipCode,
-          country: 'US',
-          latitude,
-          longitude,
-          description,
-          pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null,
-          amenities: [
-            ...amenitiesIncluded,
-            ...areasAvailable.map(a => `Area: ${a}`),
-            ...(areasAvailable.includes('Other') && otherAreaText ? [`Other Area: ${otherAreaText}`] : []),
-            ...(otherAmenities ? [`Other: ${otherAmenities}`] : []),
-            ...(entireOffice !== null ? [`Entire Office: ${entireOffice ? 'Yes' : 'No'}`] : []),
-            ...(availability ? [`Availability: ${availability}`] : []),
-            ...(leaseType ? [`Lease Type: ${leaseType}`] : []),
-            ...(constructionType ? [`Construction: ${constructionType}`] : []),
-            ...targetProfessionals.map(p => `Target: ${p}`),
-            ...(relationship ? [`Relationship: ${relationship}`] : []),
-            ...contactMethods.map(m => `Contact via: ${m}`),
-            ...(hearAboutUs ? [`Heard from: ${hearAboutUs}`] : []),
-            ...subleaseInspirations.map(s => `Inspiration: ${s}`),
-            ...(brandAmbassador !== null ? [`Brand Ambassador: ${brandAmbassador ? 'Yes' : 'No'}`] : []),
-          ],
-          availabilityHours: { contactName, contactEmail, contactPhone, signatureName, region },
-        }),
+        body: JSON.stringify(payload),
       })
 
       await fetch(`/api/listings/${currentDraftId}/pricing`, {
