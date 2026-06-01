@@ -517,10 +517,6 @@ function AddListingPage() {
   }
 
   const handleSubmit = async () => {
-    if (!latitude || !longitude) {
-      setSubmitError({ message: 'Please search and select your address from the "Enter address" dropdown to set the map location.', step: 2 })
-      return
-    }
     if (!streetAddress || !city || !state || !zipCode || (state === 'Other' && !otherState)) {
       setSubmitError({ message: 'Please fill in your complete address.', step: 2 })
       return
@@ -631,13 +627,17 @@ function AddListingPage() {
         body: JSON.stringify({ pricePerMonth: monthlyRent ? parseFloat(monthlyRent) : null }),
       })
 
-      const publishRes = await fetch(`/api/listings/${currentDraftId}/publish`, { method: 'PUT' })
-      const publishData = await publishRes.json()
-
-      if (publishRes.ok && publishData.success) {
+      if (region === 'other') {
         setSubmitSuccess(true)
       } else {
-        setSubmitError({ message: publishData.error || 'Failed to submit listing.' })
+        const publishRes = await fetch(`/api/listings/${currentDraftId}/publish`, { method: 'PUT' })
+        const publishData = await publishRes.json()
+
+        if (publishRes.ok && publishData.success) {
+          setSubmitSuccess(true)
+        } else {
+          setSubmitError({ message: publishData.error || 'Failed to submit listing.' })
+        }
       }
     } catch (err: any) {
       setSubmitError({ message: err.message || 'Submission failed.' })
@@ -693,9 +693,12 @@ function AddListingPage() {
             <div className="w-16 h-16 bg-teal-50 border border-teal-200 rounded-full flex items-center justify-center text-teal-600 mx-auto">
               <Check className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-extrabold text-[#1a2b49]">Listing Submitted!</h2>
+            <h2 className="text-2xl font-extrabold text-[#1a2b49]">{region === 'other' ? 'Listing Submitted!' : 'Listing Published!'}</h2>
             <p className="text-slate-500 text-sm leading-relaxed">
-              Your listing has been submitted successfully. Our team will review it and it will be live on the platform shortly.
+              {region === 'other'
+                ? "Thanks for submitting! Since this region isn't fully live yet, your listing has been securely saved to our database. Our team will review it, and we'll notify you as soon as this region launches."
+                : "Congratulations! Your listing has been published successfully and is now live on the platform."
+              }
             </p>
             <button onClick={() => router.push('/dashboard')} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition-colors">
               Go to Dashboard
@@ -787,7 +790,7 @@ function AddListingPage() {
                 </div>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input ref={autocompleteInputRef} type="text" placeholder="Enter address *" className="w-full pl-10 pr-4 py-4 border-2 border-slate-200 hover:border-slate-300 focus:border-slate-800 rounded-xl text-sm font-medium outline-none transition-colors" />
+                  <input ref={autocompleteInputRef} type="text" placeholder="Enter address" className="w-full pl-10 pr-4 py-4 border-2 border-slate-200 hover:border-slate-300 focus:border-slate-800 rounded-xl text-sm font-medium outline-none transition-colors" />
                 </div>
                 
                 <h2 className="text-xl font-bold text-[#1a2b49] pt-4">Confirm your address</h2>
@@ -1201,7 +1204,7 @@ function AddListingPage() {
               } disabled:opacity-70 disabled:cursor-not-allowed`}
             >
               {submitting || Object.keys(photoUploadProgress).length > 0 ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-              {currentStep === 1 ? 'Get started' : currentStep === TOTAL_STEPS ? 'Publish' : 'Next'}
+              {currentStep === 1 ? 'Get started' : currentStep === TOTAL_STEPS ? (region === 'other' ? 'Submit' : 'Publish') : 'Next'}
             </button>
          </div>
       </footer>

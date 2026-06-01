@@ -96,6 +96,15 @@ function ListYourSpacePage() {
     router.push('/add-listing?region=orlando')
   }
 
+  const handleJoinWaitlist = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (authStatus !== 'authenticated') {
+      router.push('/signup?callbackUrl=/add-listing?region=other')
+      return
+    }
+    router.push('/add-listing?region=other')
+  }
+
   const features = [
     'List one healthcare space (exam room, dental chair, surgical suite)',
     'Unlimited photos and detailed description',
@@ -231,7 +240,7 @@ function ListYourSpacePage() {
                         <Info className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
                         <div className="space-y-1.5">
                           <p className="text-sm text-slate-700 leading-relaxed">
-                            Sorry, we are not serving regions outside of Central Florida. <a href="#" className="text-[#E51D53] font-semibold hover:underline">Join the waitlist here</a>. We hope to be in your area soon and you'll be the first to know!
+                            Sorry, we are not serving regions outside of Central Florida. <a href="#" onClick={handleJoinWaitlist} className="text-[#E51D53] font-semibold hover:underline">Join the waitlist here</a>. We hope to be in your area soon and you'll be the first to know!
                           </p>
                         </div>
                       </div>
