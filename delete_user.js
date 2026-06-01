@@ -3,10 +3,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.user.deleteMany({
-    where: { 
-      email: { 
-        in: ['ujjwalverma010305@gmail.com', 'nothingu142@gmail.com'] 
-      } 
+    where: {
+      email: {
+        in: ['ujjwalverma010305@gmail.com', 'nothingu142@gmail.com', '2k24.cs1q.2414113@gmail.com']
+      }
     }
   });
   console.log('User deleted successfully.');

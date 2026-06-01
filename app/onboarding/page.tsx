@@ -170,8 +170,15 @@ function OnboardingPage() {
                 transition={{ duration: 0.4 }}
                 className="space-y-8"
               >
+                {!intentParam && (
+                  <div className="mb-10 text-center sm:text-left">
+                    <h1 className="text-4xl md:text-[44px] font-semibold text-[#1a2b49] leading-tight tracking-tight">
+                      Welcome to Link <span className="text-[#E51D53]">Medical</span> Spaces
+                    </h1>
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-bold text-[#1a2b49]">What brings you here?</h1>
+                  <h2 className="text-3xl font-bold text-[#1a2b49]">What brings you here?</h2>
                   <p className="text-slate-500">Select the option that best describes you.</p>
                 </div>
 
@@ -210,8 +217,15 @@ function OnboardingPage() {
                 transition={{ duration: 0.4 }}
                 className="space-y-8"
               >
+                {intentParam && (
+                  <div className="mb-10 text-center sm:text-left">
+                    <h1 className="text-4xl md:text-[44px] font-semibold text-[#1a2b49] leading-tight tracking-tight">
+                      Welcome to Link <span className="text-[#E51D53]">Medical</span> Spaces
+                    </h1>
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-bold text-[#1a2b49]">Tell us more about you</h1>
+                  <h2 className="text-3xl font-bold text-[#1a2b49]">Tell us more about you</h2>
                   <p className="text-slate-500">Select your professional background.</p>
                 </div>
 
