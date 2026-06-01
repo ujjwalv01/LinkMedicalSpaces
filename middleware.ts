@@ -52,7 +52,7 @@ export default withAuth(
     // ── Guard: /search-spaces ───────────────────────────────────────────
     if (req.nextUrl.pathname.startsWith('/search-spaces')) {
       if (!token) {
-        const url = new URL('/signin', req.url)
+        const url = new URL('/signup', req.url)
         url.searchParams.set('callbackUrl', req.url)
         const response = NextResponse.redirect(url)
         response.cookies.set('signup_intent', 'SEEKER', { path: '/', maxAge: 3600 })
@@ -63,7 +63,7 @@ export default withAuth(
     // ── Guard: /list-your-space & /add-listing ──────────────────────────
     if (req.nextUrl.pathname.startsWith('/list-your-space') || req.nextUrl.pathname.startsWith('/add-listing')) {
       if (!token) {
-        const url = new URL('/signin', req.url)
+        const url = new URL('/signup', req.url)
         url.searchParams.set('callbackUrl', req.url)
         const response = NextResponse.redirect(url)
         response.cookies.set('signup_intent', 'OWNER', { path: '/', maxAge: 3600 })
