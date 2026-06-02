@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Loader } from '@googlemaps/js-api-loader'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { useDropzone } from 'react-dropzone'
 import imageCompression from 'browser-image-compression'
 import {
@@ -352,8 +352,9 @@ function AddListingPage() {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
     if (!apiKey || apiKey === 'your-google-maps-api-key') return
 
-    const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places'] }) as any
-    loader.load().then((google: any) => {
+    setOptions({ key: apiKey, v: 'weekly' })
+    importLibrary("places").then(() => {
+      const google = (window as any).google;
       setMapsLoaded(true)
       if (mapRef.current) {
         const defaultLatLng = { lat: latitude || 28.5383, lng: longitude || -81.3792 }

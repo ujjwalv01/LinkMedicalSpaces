@@ -3,7 +3,7 @@
 import {  useState, useEffect, useRef , Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Loader } from '@googlemaps/js-api-loader'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -269,13 +269,13 @@ function SearchSpacesPage() {
       return
     }
 
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places'],
-    }) as any
+    setOptions({
+      key: apiKey,
+      v: 'weekly',
+    })
 
-    loader.load().then((google: any) => {
+    importLibrary("places").then(() => {
+      const google = (window as any).google;
       setMapsLoaded(true)
 
       // Fallback location: Orlando, FL
@@ -1011,7 +1011,6 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave }: GridCardProps)
     ? listing.media.slice(0, 3)
     : [{ id: 'fallback', originalUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800' }]
 
-  const isVerified = listing.user?.verificationStatus === 'VERIFIED'
   const spaceTypeLabel = listing.spaceType ? listing.spaceType.replace(/_/g, ' ') : 'Medical Space'
 
   let displayPrice = ''
@@ -1105,15 +1104,7 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave }: GridCardProps)
           </span>
         </div>
 
-        {/* Doctor Verified Badge */}
-        {isVerified && (
-          <div className="absolute top-4 right-4 z-20">
-            <span className="bg-teal-600/90 backdrop-blur-sm text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
-              <CheckCircle2 className="w-3 h-3 text-white fill-white/10" />
-              Doctor Verified
-            </span>
-          </div>
-        )}
+
 
       </div>
 

@@ -61,6 +61,8 @@ export default function Navbar() {
   }
 
   const userImage = session?.user?.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+  const isAdmin = session?.user?.email && ['shreyas@mediatree.co.in', 'ujjwalverma010305@gmail.com'].includes(session.user.email.toLowerCase())
+  const dashboardPath = isAdmin ? '/lms-admin' : '/dashboard'
 
   return (
     <nav className="bg-white border-b border-slate-200 py-3 px-6 sticky top-0 z-50 shadow-sm transition-all duration-300">
@@ -144,7 +146,7 @@ export default function Navbar() {
                       </div>
                       
                       <button
-                        onClick={() => { setIsDropdownOpen(false); router.push('/dashboard') }}
+                        onClick={() => { setIsDropdownOpen(false); router.push(dashboardPath) }}
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                       >
                         <LayoutDashboard className="w-4 h-4 text-slate-400" />
@@ -264,7 +266,7 @@ export default function Navbar() {
                 {authStatus === 'authenticated' ? (
                   <>
                     <button
-                      onClick={() => { setIsMobileMenuOpen(false); router.push('/dashboard') }}
+                      onClick={() => { setIsMobileMenuOpen(false); router.push(dashboardPath) }}
                       className="w-full text-left font-bold text-slate-700 hover:text-teal-600 text-sm py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                       Dashboard

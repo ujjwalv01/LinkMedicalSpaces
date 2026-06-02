@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Loader } from '@googlemaps/js-api-loader'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MapPin,
@@ -189,12 +189,13 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
       return
     }
 
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-    }) as any
+    setOptions({
+      key: apiKey,
+      v: 'weekly',
+    })
 
-    loader.load().then((google: any) => {
+    importLibrary("places").then(() => {
+      const google = (window as any).google;
       setMapsLoaded(true)
       const position = { lat: listing.latitude || 28.538336, lng: listing.longitude || -81.379234 }
 
@@ -498,12 +499,6 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
                 {listing.rooms} {listing.rooms === 1 ? 'Room' : 'Rooms'}
               </span>
             )}
-            {listing.user?.verificationStatus === 'VERIFIED' && (
-              <span className="bg-teal-50 border border-teal-200 text-teal-700 text-xs font-bold px-3 py-1 rounded-lg flex items-center gap-1 leading-none">
-                <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 fill-teal-100" />
-                Doctor Verified
-              </span>
-            )}
           </div>
 
           <div className="border-t border-slate-100" />
@@ -673,16 +668,7 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
                     <h4 className="font-extrabold text-slate-950 text-base">
                       {listing.user.name || 'Space Provider'}
                     </h4>
-                    {listing.user.verificationStatus === 'VERIFIED' && (
-                      <span className="bg-teal-600 text-white p-0.5 rounded-full" title="Verified Provider">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </span>
-                    )}
                   </div>
-                  
-                  <p className="text-slate-500 text-xs">
-                    Verification status: <span className="font-bold text-slate-700 capitalize">{listing.user.verificationStatus?.toLowerCase() || 'pending'}</span>
-                  </p>
                   {formattedHostDate && (
                     <p className="text-slate-400 text-[11px] pt-1">
                       Joined LinkMedicalSpaces in {formattedHostDate}
@@ -884,7 +870,7 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
               className="w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg shadow-teal-600/20 transition-all hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-1.5"
             >
               <Send className="w-4 h-4" />
-              {hasPricing ? 'Request to Book Space' : 'Contact Owner'}
+              {hasPricing ? 'Request to Book Space' : 'Contact Lister'}
             </button>
             
             <p className="text-[10px] text-center text-slate-400 font-semibold tracking-wider uppercase">
@@ -1015,7 +1001,7 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
                   
                   <div className="space-y-1.5">
                     <h3 className="text-xl font-black text-slate-900 leading-none">Inquire about this space</h3>
-                    <p className="text-slate-400 text-xs font-semibold">Send a message directly to the space owner</p>
+                    <p className="text-slate-400 text-xs font-semibold">Send a message directly to the space lister</p>
                   </div>
 
                   {contactError && (

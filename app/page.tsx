@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader } from '@googlemaps/js-api-loader'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import {
   Building,
   Search,
@@ -65,13 +65,13 @@ export default function Home() {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
     if (!apiKey || apiKey === 'your-google-maps-api-key') return
 
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places'],
-    }) as any
+    setOptions({
+      key: apiKey,
+      v: 'weekly',
+    })
 
-    loader.load().then((google: any) => {
+    importLibrary("places").then(() => {
+      const google = (window as any).google;
       if (autocompleteInputRef.current) {
         const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, {
           types: ['(regions)'],

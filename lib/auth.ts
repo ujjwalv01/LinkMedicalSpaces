@@ -159,6 +159,7 @@ export const authOptions: NextAuthOptions = {
           update: {
             name: user.name ?? undefined,
             image: user.image ?? undefined,
+            lastLogin: new Date(),
             ...(roleToAssign ? { role: roleToAssign as any } : {}),
           },
           create: {
@@ -171,6 +172,17 @@ export const authOptions: NextAuthOptions = {
           },
         })
       }
+
+      // Update lastLogin for all providers (credentials, otp)
+      if (user.email && account?.provider !== 'google') {
+        try {
+          await prisma.user.update({
+            where: { email: user.email.toLowerCase() },
+            data: { lastLogin: new Date() },
+          })
+        } catch {}
+      }
+
       return true
     },
 

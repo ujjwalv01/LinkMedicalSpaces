@@ -1,17 +1,110 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
+// ─── Hard-coded admin emails (duplicated from lib/admin.ts because middleware
+//     runs in the Edge Runtime and cannot import server-only modules) ─────────
+const LMS_ADMIN_EMAILS = [
+  'shreyas@mediatree.co.in',
+  'ujjwalverma010305@gmail.com',
+]
+
+// ─── Rate limiter for /lms-admin routes (in-memory, per-IP) ─────────────────
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_MAX = 10
+const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
+
+function isRateLimited(key: string, limit: number): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
+    return false
+  }
+
+  entry.count++
+  if (entry.count > limit) {
+    return true
+  }
+  return false
+}
+
+// Periodically clean up stale entries (prevent memory leak)
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, val] of rateLimitMap) {
+      if (now > val.resetTime) rateLimitMap.delete(key)
+    }
+  }, 120_000)
+}
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
-    
+
     // User role & subscription status
     const role = token?.role as string | undefined
     const subscriptionStatus = token?.subscriptionStatus as string | undefined
     const onboarded = token?.onboarded as boolean | undefined
 
-    const isOwner = role === 'OWNER' || role === 'ADMIN' || role === 'SUPER_ADMIN'
-    const isSubscribed = subscriptionStatus === 'ACTIVE'
+    // ── Sensitive Route Rate Limiting ─────────────────────────────────────
+    if (req.method !== 'GET') {
+      const pathname = req.nextUrl.pathname
+      let rateLimitMax = 0
+
+      if (pathname === '/api/auth/signin' || pathname === '/api/auth/callback/credentials') {
+        rateLimitMax = 5
+      } else if (pathname === '/api/auth/send-otp') {
+        rateLimitMax = 3
+      } else if (pathname === '/api/auth/reset-password') {
+        rateLimitMax = 3
+      } else if (pathname.match(/^\/api\/(lms-)?admin\/users\/[^/]+\/delete$/) || (pathname.match(/^\/api\/(lms-)?admin\/users\/[^/]+$/) && req.method === 'DELETE')) {
+        rateLimitMax = 10
+      } else if (pathname.match(/^\/api\/(lms-)?admin\/users\/[^/]+\/disable$/)) {
+        rateLimitMax = 10
+      } else if (pathname.match(/^\/api\/(lms-)?admin\/properties\/[^/]+\/approve$/)) {
+        rateLimitMax = 20
+      } else if (pathname.match(/^\/api\/(lms-)?admin\/properties\/[^/]+\/reject$/)) {
+        rateLimitMax = 20
+      }
+
+      if (rateLimitMax > 0) {
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
+        const key = `${ip}:${pathname}`
+        if (isRateLimited(key, rateLimitMax)) {
+          return new NextResponse('Too many requests. Please try again later.', { status: 429 })
+        }
+      }
+    }
+
+    // ── Admin gate ────────────────────────────────────────────────────────
+    if (req.nextUrl.pathname.startsWith('/lms-admin') || req.nextUrl.pathname.startsWith('/api/lms-admin')) {
+      const email = token?.email?.toLowerCase()
+
+      // Must be authenticated AND have an allowed admin email
+      if (!token || !email || !LMS_ADMIN_EMAILS.includes(email)) {
+        return NextResponse.redirect(new URL('/not-found', req.url))
+      }
+
+      return NextResponse.next()
+    }
+
+    // ── Redirect Admins away from User Pages ──────────────────────────────
+    const currentEmail = token?.email?.toLowerCase()
+    const isAdmin = token && currentEmail && LMS_ADMIN_EMAILS.includes(currentEmail)
+
+    if (isAdmin) {
+      if (
+        req.nextUrl.pathname.startsWith('/dashboard') ||
+        req.nextUrl.pathname.startsWith('/list-your-space') ||
+        req.nextUrl.pathname.startsWith('/search-spaces') ||
+        req.nextUrl.pathname.startsWith('/add-listing') ||
+        req.nextUrl.pathname.startsWith('/onboarding')
+      ) {
+        return NextResponse.redirect(new URL('/lms-admin', req.url))
+      }
+    }
 
     // ── Onboarding gate ─────────────────────────────────────────────────
     // If user is authenticated but not onboarded, redirect to /onboarding
@@ -91,5 +184,9 @@ export const config = {
     '/add-listing/:path*',
     '/dashboard/:path*',
     '/onboarding/:path*',
+    '/lms-admin/:path*',
+    '/api/lms-admin/:path*',
+    '/api/admin/:path*',
+    '/api/auth/:path*',
   ],
 }

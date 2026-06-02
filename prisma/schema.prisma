@@ -23,6 +23,7 @@ model User {
   subscriptionStatus SubscriptionStatus @default(INACTIVE)
   subscriptionId     String?
   subscriptionExpiry DateTime?
+  lastLogin          DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   userSubType        String?
@@ -90,6 +91,7 @@ model Listing {
   amenities         Json           @default("[]")
   availabilityHours Json           @default("{}")
   viewCount         Int            @default(0)
+  savedCount        Int            @default(0)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   bookings          Booking[]
@@ -198,4 +200,17 @@ enum BookingStatus {
   CANCELLED
   COMPLETED
   REJECTED
+}
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminEmail String
+  action     String
+  targetId   String
+  targetType String
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminEmail])
+  @@index([createdAt])
 }
