@@ -106,6 +106,26 @@ export default withAuth(
       }
     }
 
+    // ── Protect /dashboard/owner route ────────────────────────────────────
+    if (req.nextUrl.pathname.startsWith('/dashboard/owner')) {
+      if (!token || (token.role !== 'OWNER' && !isAdmin)) {
+        // Fallback for seekers or unauthenticated users trying to access owner dashboard
+        // Once /dashboard/seeker exists, this could redirect there for seekers
+        return NextResponse.redirect(new URL('/search-spaces', req.url))
+      }
+    }
+
+    // ── Route /dashboard based on role ────────────────────────────────────
+    if (req.nextUrl.pathname === '/dashboard') {
+      if (token && role === 'OWNER') {
+        return NextResponse.redirect(new URL('/dashboard/owner', req.url))
+      }
+      if (token && role === 'SEEKER') {
+        // Fallback until seeker dashboard is built
+        // return NextResponse.redirect(new URL('/dashboard/seeker', req.url))
+      }
+    }
+
     // ── Onboarding gate ─────────────────────────────────────────────────
     // If user is authenticated but not onboarded, redirect to /onboarding
     // (except if they're already on /onboarding)

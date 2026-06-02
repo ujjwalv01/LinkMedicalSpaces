@@ -103,6 +103,22 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
   // --- Favorite/Save state ---
   const [isSaved, setIsSaved] = useState(false)
   const [showShareTooltip, setShowShareTooltip] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [hasTrackedView, setHasTrackedView] = useState(false)
+
+  // Track view when component mounts
+  useEffect(() => {
+    if (!listing.id || hasTrackedView) return
+    const trackView = async () => {
+      try {
+        await fetch(`/api/listings/${listing.id}/view`, { method: 'POST' })
+        setHasTrackedView(true)
+      } catch (err) {
+        console.error('Failed to track view', err)
+      }
+    }
+    trackView()
+  }, [listing.id, hasTrackedView])
 
   // --- Map state ---
   const [mapsLoaded, setMapsLoaded] = useState<boolean | null>(null)

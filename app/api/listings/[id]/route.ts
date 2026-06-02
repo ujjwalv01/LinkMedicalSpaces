@@ -1,100 +1,108 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-// ─── GET /api/listings/[id] ────────────────────────────────────────────────
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const listing = await prisma.listing.findFirst({
-      where: {
-        OR: [
-          { id: params.id },
-          { slug: params.id },
-        ],
-      },
-      include: {
-        media: { orderBy: { order: 'asc' } },
-        user: {
-          select: {
-            id: true, name: true, image: true,
-            mciNumber: true, verificationStatus: true, createdAt: true,
-          },
-        },
-      },
-    })
-
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
-    }
-
-    // Increment view count
-    prisma.listing.update({
-      where: { id: listing.id },
-      data: { viewCount: { increment: 1 } },
-    }).catch(console.error)
-
-    return NextResponse.json(listing)
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-// ─── PATCH /api/listings/[id] ──────────────────────────────────────────────
-
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const listing = await prisma.listing.findUnique({ where: { id: params.id } })
-    if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (listing.userId !== session.user.id && session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const body = await req.json()
-    const updated = await prisma.listing.update({
-      where: { id: params.id },
-      data: body,
+    const { id } = params
+    
+    // Ensure the listing belongs to the user
+    const listing = await prisma.listing.findUnique({
+      where: { id },
+      include: { media: true }
     })
 
-    return NextResponse.json(updated)
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-// ─── DELETE /api/listings/[id] ─────────────────────────────────────────────
-
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!listing || listing.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 })
     }
 
-    const listing = await prisma.listing.findUnique({ where: { id: params.id } })
-    if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (listing.userId !== session.user.id && session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const data = await req.json()
+    const {
+      title,
+      description,
+      pricePerHour,
+      pricePerDay,
+      pricePerMonth,
+      spaceType,
+      rooms,
+      squareFeet,
+      address,
+      city,
+      state,
+      zipCode,
+      amenities,
+      availabilityHours,
+      media // New media logic if provided
+    } = data
+
+    const updateData: any = {}
+    if (title !== undefined) updateData.title = title
+    if (description !== undefined) updateData.description = description
+    if (pricePerHour !== undefined) updateData.pricePerHour = pricePerHour
+    if (pricePerDay !== undefined) updateData.pricePerDay = pricePerDay
+    if (pricePerMonth !== undefined) updateData.pricePerMonth = pricePerMonth
+    if (spaceType !== undefined) updateData.spaceType = spaceType
+    if (rooms !== undefined) updateData.rooms = rooms
+    if (squareFeet !== undefined) updateData.squareFeet = squareFeet
+    if (address !== undefined) updateData.address = address
+    if (city !== undefined) updateData.city = city
+    if (state !== undefined) updateData.state = state
+    if (zipCode !== undefined) updateData.zipCode = zipCode
+    if (amenities !== undefined) updateData.amenities = amenities
+    if (availabilityHours !== undefined) updateData.availabilityHours = availabilityHours
+
+    const updatedListing = await prisma.listing.update({
+      where: { id },
+      data: updateData
+    })
+
+    // Handle media updates if provided
+    if (media && Array.isArray(media)) {
+      // 1. Delete old media not in new array (if they have an id)
+      const existingMediaIds = listing.media.map(m => m.id)
+      const newMediaIds = media.map((m: any) => m.id).filter(Boolean)
+      
+      const idsToDelete = existingMediaIds.filter(id => !newMediaIds.includes(id))
+      if (idsToDelete.length > 0) {
+        await prisma.listingMedia.deleteMany({
+          where: { id: { in: idsToDelete } }
+        })
+      }
+
+      // 2. Add or update media
+      for (let i = 0; i < media.length; i++) {
+        const item = media[i]
+        if (item.id) {
+          // Update order or caption
+          await prisma.listingMedia.update({
+            where: { id: item.id },
+            data: { order: i, caption: item.caption || null }
+          })
+        } else {
+          // Create new
+          await prisma.listingMedia.create({
+            data: {
+              listingId: id,
+              originalUrl: item.originalUrl,
+              optimizedUrl: item.optimizedUrl,
+              type: item.type || 'IMAGE',
+              caption: item.caption || null,
+              order: i
+            }
+          })
+        }
+      }
     }
 
-    await prisma.listing.delete({ where: { id: params.id } })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, listing: updatedListing })
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error updating listing:', error)
+    return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })
   }
 }

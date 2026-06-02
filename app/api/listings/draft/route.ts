@@ -17,11 +17,12 @@ export async function GET(req: NextRequest) {
 
     const where: any = {
       userId: session.user.id,
-      status: 'DRAFT',
     }
 
     if (id) {
       where.id = id
+    } else {
+      where.status = 'DRAFT'
     }
 
     // Retrieve the user's latest draft listing with media
