@@ -44,7 +44,7 @@ export default function AvailableSpacesPlaceholder() {
             <div 
               key={idx} 
               className={`group ${space ? 'cursor-pointer' : ''}`}
-              onClick={() => space && space.slug && router.push(`/listings/${space.slug}`)}
+              onClick={() => space && space.slug && router.push(`/property/${space.slug}`)}
             >
               {/* Image Placeholder Box */}
               <div className="aspect-[4/3] w-full bg-slate-100 rounded-xl mb-4 flex items-center justify-center border border-slate-200 group-hover:border-teal-300 transition-colors overflow-hidden">

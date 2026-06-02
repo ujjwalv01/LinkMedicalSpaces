@@ -93,9 +93,10 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
 
   const [targetProfessionals, setTargetProfessionals] = useState<string[]>([])
 
-  const [featuredImage, setFeaturedImage] = useState<any | null>(null)
+  const [featuredImage, setFeaturedImage] = useState<any>(null)
   const [additionalImages, setAdditionalImages] = useState<any[]>([])
-  const [propertyVideo, setPropertyVideo] = useState<any | null>(null)
+  const [propertyVideo, setPropertyVideo] = useState<any>(null)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [photoUploadProgress, setPhotoUploadProgress] = useState<Record<string, number>>({})
 
   const [monthlyRent, setMonthlyRent] = useState('')
@@ -103,10 +104,19 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
   const [subleaseInspirations, setSubleaseInspirations] = useState<string[]>([])
   const [relationship, setRelationship] = useState<string | null>(null)
   const [contactMethods, setContactMethods] = useState<string[]>([])
+  
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
+  const [hasBrokerAgreement, setHasBrokerAgreement] = useState<boolean | null>(null)
+  
+  const [agentName, setAgentName] = useState('')
+  const [brokerageName, setBrokerageName] = useState('')
+  const [agentEmail, setAgentEmail] = useState('')
+  const [agentPhone, setAgentPhone] = useState('')
+
   const [brandAmbassador, setBrandAmbassador] = useState<boolean | null>(null)
+  const [brandAmbassadorName, setBrandAmbassadorName] = useState('')
   const [attestation1, setAttestation1] = useState(false)
   const [attestation2, setAttestation2] = useState(false)
   const [attestation3, setAttestation3] = useState(false)
@@ -125,12 +135,7 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInitialLoad = useRef(true)
 
-  useEffect(() => {
-    if (session?.user) {
-      if (session.user.name) setContactName(session.user.name)
-      if (session.user.email) setContactEmail(session.user.email)
-    }
-  }, [session])
+  // Autofill removed as requested
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -221,7 +226,13 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                 if (ah.contactName) setContactName(ah.contactName)
                 if (ah.contactEmail) setContactEmail(ah.contactEmail)
                 if (ah.contactPhone) setContactPhone(ah.contactPhone)
+                if (ah.hasBrokerAgreement !== undefined) setHasBrokerAgreement(ah.hasBrokerAgreement)
+                if (ah.agentName) setAgentName(ah.agentName)
+                if (ah.brokerageName) setBrokerageName(ah.brokerageName)
+                if (ah.agentEmail) setAgentEmail(ah.agentEmail)
+                if (ah.agentPhone) setAgentPhone(ah.agentPhone)
                 if (ah.signatureName) setSignatureName(ah.signatureName)
+                if (ah.brandAmbassadorName) setBrandAmbassadorName(ah.brandAmbassadorName)
               }
 
               const media = draft.media || []
@@ -289,15 +300,20 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
         ...subleaseInspirations.map(s => `Inspiration: ${s}`),
         ...(brandAmbassador !== null ? [`Brand Ambassador: ${brandAmbassador ? 'Yes' : 'No'}`] : []),
       ],
-      availabilityHours: { contactName, contactEmail, contactPhone, signatureName, region },
+      availabilityHours: { 
+        contactName, contactEmail, contactPhone, hasBrokerAgreement, 
+        agentName, brokerageName, agentEmail, agentPhone, 
+        signatureName, brandAmbassadorName, region 
+      },
     }
   }, [
     streetAddress, city, state, otherState, zipCode, latitude, longitude,
     examRooms, description, monthlyRent, amenitiesIncluded, areasAvailable,
     otherAreaText, otherAmenities, entireOffice, availability, leaseType,
     constructionType, targetProfessionals, relationship, contactMethods,
-    hearAboutUs, subleaseInspirations, brandAmbassador, contactName,
-    contactEmail, contactPhone, signatureName, region,
+    hearAboutUs, subleaseInspirations, brandAmbassador, brandAmbassadorName, contactName, contactEmail, 
+    contactPhone, hasBrokerAgreement, agentName, brokerageName, agentEmail, 
+    agentPhone, signatureName, region,
   ])
 
   // Auto-save to DB
@@ -346,8 +362,9 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
     examRooms, description, monthlyRent, amenitiesIncluded, areasAvailable,
     otherAreaText, otherAmenities, entireOffice, availability, leaseType,
     constructionType, targetProfessionals, relationship, contactMethods,
-    hearAboutUs, subleaseInspirations, brandAmbassador, contactName,
-    contactEmail, contactPhone, signatureName, attestation1, attestation2,
+    hearAboutUs, subleaseInspirations, brandAmbassador, brandAmbassadorName, contactName, contactEmail, 
+    contactPhone, hasBrokerAgreement, agentName, brokerageName, agentEmail, 
+    agentPhone, signatureName, region, attestation1, attestation2,
     attestation3, autoSaveDraft, loadingDraft,
   ])
 
@@ -513,12 +530,69 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
     } catch (err: any) { console.error(err) }
   }
 
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    // Set some data so Firefox allows dragging
+    e.dataTransfer.setData('text/plain', index.toString())
+  }
+
+  const handleDragEnter = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+  }
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault() // Necessary to allow dropping
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null)
+      return
+    }
+
+    const allImages = [featuredImage, ...additionalImages].filter(Boolean)
+    const draggedImg = allImages[draggedIndex]
+    
+    // Remove from old position and insert at new position
+    allImages.splice(draggedIndex, 1)
+    allImages.splice(targetIndex, 0, draggedImg)
+
+    // Update state
+    setFeaturedImage(allImages[0] || null)
+    setAdditionalImages(allImages.slice(1))
+    setDraggedIndex(null)
+
+    // Save to API
+    const currentDraftId = draftIdRef.current
+    if (!currentDraftId) return
+
+    const orderedMediaIds = allImages.map(img => img?.id).filter(Boolean)
+    if (orderedMediaIds.length > 0) {
+      try {
+        await fetch('/api/listings/media/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: currentDraftId, orderedMediaIds })
+        })
+      } catch (err) {
+        console.error('Failed to save new order:', err)
+      }
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+  }
+
   const handleVideoUpload = async (files: File[]) => {
     const file = files[0]
     if (!file) return
     const currentDraftId = await ensureDraftId()
     if (!currentDraftId) return
-    const key = `video-${Date.now()}`
+    const key = 'video'
     setPhotoUploadProgress(p => ({ ...p, [key]: 5 }))
     try {
       const formData = new FormData()
@@ -527,9 +601,14 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
       const data = await uploadWithProgress('/api/upload/video', formData, (p: number) => setPhotoUploadProgress(prev => ({ ...prev, [key]: p })))
       setPropertyVideo(data.media)
     } catch (err: any) {
-      console.error(err)
+      console.error('Video upload failed', err)
+      alert(err.message || 'Video upload failed')
     } finally {
-      setPhotoUploadProgress(p => { const c = { ...p }; delete c[key]; return c })
+      setPhotoUploadProgress(p => {
+        const copy = { ...p }
+        delete copy[key]
+        return copy
+      })
     }
   }
 
@@ -630,12 +709,31 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
       setSubmitError({ message: 'Please provide a valid monthly base rent.', step: 7 })
       return
     }
+    if (!contactName.trim() || !contactEmail.trim() || !contactPhone.trim()) {
+      setSubmitError({ message: 'Please provide complete contact details (Name, Email, Phone).', step: 7 })
+      return
+    }
     if (!relationship) {
       setSubmitError({ message: 'Please specify your relationship to the property.', step: 7 })
       return
     }
-    if (!contactName.trim() || !contactEmail.trim() || !contactPhone.trim()) {
-      setSubmitError({ message: 'Please provide complete contact details (Name, Email, Phone).', step: 7 })
+    if (relationship === 'owner') {
+      if (hasBrokerAgreement === null) {
+        setSubmitError({ message: 'Please specify if you have an agreement with a broker.', step: 7 })
+        return
+      }
+      if (hasBrokerAgreement && (!agentName.trim() || !brokerageName.trim() || !agentEmail.trim() || !agentPhone.trim())) {
+        setSubmitError({ message: 'Please provide complete broker details.', step: 7 })
+        return
+      }
+    } else if (relationship === 'broker') {
+      if (!agentName.trim() || !brokerageName.trim() || !agentEmail.trim() || !agentPhone.trim()) {
+        setSubmitError({ message: 'Please provide complete broker details.', step: 7 })
+        return
+      }
+    }
+    if (brandAmbassador === true && !brandAmbassadorName.trim()) {
+      setSubmitError({ message: 'Please provide the name of the Brand Ambassador who referred you.', step: 8 })
       return
     }
     if (!attestation1 || !attestation2 || !attestation3) {
@@ -1047,31 +1145,76 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                           <p className="text-sm text-slate-500 mt-2">or click to browse</p>
                         </div>
                       ) : (
-                        <div className="float-left w-[280px] h-[280px] mr-4 mb-4 relative rounded-xl overflow-hidden border-2 border-[#E51D53] group">
-                          <img src={featuredImage.originalUrl} alt="Thumbnail" onClick={() => setZoomedImage(featuredImage.originalUrl)} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                        <div 
+                          className={`float-left w-[280px] h-[280px] mr-4 mb-4 relative rounded-xl overflow-hidden border-2 group transition-all duration-200 cursor-move ${draggedIndex === 0 ? 'opacity-40 scale-95 border-teal-500' : 'border-[#E51D53] hover:shadow-md'}`}
+                          draggable={!featuredImage.uploading}
+                          onDragStart={e => handleDragStart(e, 0)}
+                          onDragEnter={e => handleDragEnter(e, 0)}
+                          onDragOver={handleDragOver}
+                          onDrop={e => handleDrop(e, 0)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <img src={featuredImage.originalUrl} alt="Thumbnail" onClick={() => setZoomedImage(featuredImage.originalUrl)} className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                           {featuredImage.uploading ? (
                             <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20">
                               <Loader2 className="w-8 h-8 animate-spin text-[#E51D53]" />
                             </div>
                           ) : (
-                            <button onClick={() => handleDeleteImage(featuredImage.id, featuredImage.originalUrl, 'featured')} className="absolute top-3 right-3 bg-white/90 rounded-full p-2 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
-                              <Trash2 className="w-5 h-5" />
-                            </button>
+                            <>
+                              <div className="absolute top-2 left-2 bg-[#E51D53] text-white text-xs font-bold px-2 py-1 rounded shadow-sm z-10 select-none">Cover Photo</div>
+                              <button onClick={() => handleDeleteImage(featuredImage.id, featuredImage.originalUrl, 'featured')} className="absolute top-3 right-3 bg-white/90 rounded-full p-2 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-6 pb-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <input 
+                                  type="text" 
+                                  placeholder="Add caption..." 
+                                  value={featuredImage.caption || ''} 
+                                  onChange={e => setFeaturedImage({ ...featuredImage, caption: e.target.value })}
+                                  onBlur={e => handleCaptionUpdate(featuredImage.id, e.target.value)}
+                                  className="w-full bg-black/50 hover:bg-black/70 focus:bg-white focus:text-slate-900 text-white text-xs px-3 py-1.5 rounded outline-none transition-colors border border-white/20 focus:border-transparent placeholder-white/60"
+                                />
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
                       
-                      {additionalImages.map(img => (
-                        <div key={img.id} className="float-left w-[132px] h-[132px] mr-4 mb-4 relative rounded-xl overflow-hidden border border-slate-200 group">
-                          <img src={img.originalUrl} alt="Additional" onClick={() => setZoomedImage(img.originalUrl)} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                      {additionalImages.map((img, i) => (
+                        <div 
+                          key={img.id || i} 
+                          className={`float-left w-[132px] h-[132px] mr-4 mb-4 relative rounded-xl overflow-hidden border group transition-all duration-200 cursor-move ${draggedIndex === i + 1 ? 'opacity-40 scale-95 border-teal-500' : 'border-slate-200 hover:shadow-md'}`}
+                          draggable={!img.uploading}
+                          onDragStart={e => handleDragStart(e, i + 1)}
+                          onDragEnter={e => handleDragEnter(e, i + 1)}
+                          onDragOver={handleDragOver}
+                          onDrop={e => handleDrop(e, i + 1)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <img src={img.originalUrl} alt="Additional" onClick={() => setZoomedImage(img.originalUrl)} className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
                           {img.uploading ? (
                             <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20">
                               <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
                             </div>
                           ) : (
-                            <button onClick={() => handleDeleteImage(img.id, img.originalUrl, 'additional')} className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button onClick={() => handleDeleteImage(img.id, img.originalUrl, 'additional')} className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 text-slate-700 hover:text-red-600 shadow-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-6 pb-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <input 
+                                  type="text" 
+                                  placeholder="Caption..." 
+                                  value={img.caption || ''} 
+                                  onChange={e => {
+                                    const val = e.target.value
+                                    setAdditionalImages(prev => prev.map(m => m.id === img.id ? { ...m, caption: val } : m))
+                                  }}
+                                  onBlur={e => handleCaptionUpdate(img.id, e.target.value)}
+                                  className="w-full bg-black/50 hover:bg-black/70 focus:bg-white focus:text-slate-900 text-white text-[10px] px-2 py-1 rounded outline-none transition-colors border border-white/20 focus:border-transparent placeholder-white/60"
+                                />
+                              </div>
+                            </>
                           )}
                         </div>
                       ))}
@@ -1095,9 +1238,27 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                        </button>
                      </div>
                    ) : (
-                     <div {...videoDropzone.getRootProps()} className="border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-2xl p-8 cursor-pointer transition-colors text-center flex flex-col items-center justify-center">
+                     <div {...videoDropzone.getRootProps()} className="border-[2px] border-dashed border-slate-300 hover:border-slate-800 hover:bg-slate-50 rounded-2xl p-8 cursor-pointer transition-colors text-center flex flex-col items-center justify-center relative min-h-[140px]">
                        <input {...videoDropzone.getInputProps()} />
-                       <p className="font-semibold text-slate-700">Upload video (Max 500MB)</p>
+                       {photoUploadProgress['video'] !== undefined ? (
+                         <div className="w-full max-w-sm flex flex-col items-center justify-center">
+                           <p className="font-semibold text-slate-700 mb-4 flex items-center justify-center">
+                             {photoUploadProgress['video'] >= 100 ? (
+                               <span className="whitespace-nowrap">Processing video<span className="inline-block w-6 text-left animate-loading-dots"></span></span>
+                             ) : (
+                               `Uploading... ${Math.round(photoUploadProgress['video'])}%`
+                             )}
+                           </p>
+                           <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                             <div 
+                               className="h-full bg-[#1a2b49] transition-all duration-300 ease-out" 
+                               style={{ width: `${Math.max(5, photoUploadProgress['video'])}%` }} 
+                             />
+                           </div>
+                         </div>
+                       ) : (
+                         <p className="font-semibold text-slate-700">Upload video (Max 500MB)</p>
+                       )}
                      </div>
                    )}
                  </div>
@@ -1121,7 +1282,16 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                <div className="space-y-8 pt-4">
                  <h2 className="text-2xl font-bold text-[#1a2b49]">Contact & Relationship</h2>
                  
-                 <div className="space-y-4">
+                 <div className="space-y-3">
+                   <label className="text-lg font-semibold text-[#1a2b49] block">Contact details <span className="text-red-500">*</span></label>
+                   <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-sm">
+                     <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Your Name" className="w-full px-5 py-4 text-base outline-none border-b border-slate-200" />
+                     <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="Your Email ID" className="w-full px-5 py-4 text-base outline-none border-b border-slate-200" />
+                     <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Your Phone Number" className="w-full px-5 py-4 text-base outline-none" />
+                   </div>
+                 </div>
+                 
+                 <div className="space-y-4 pt-4">
                     <label className="text-lg font-semibold text-[#1a2b49] block">Your relationship to the property <span className="text-red-500">*</span></label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <ChoiceBox label="Property Owner/Tenant" icon={User} small selected={relationship === 'owner'} onClick={() => setRelationship('owner')} />
@@ -1129,11 +1299,31 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                     </div>
                  </div>
 
-                 <div className="space-y-4 pt-8">
-                    <label className="text-lg font-semibold text-[#1a2b49] block mb-2">Contact details</label>
-                   <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Contact Person Name *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
-                   <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="Email Address *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
-                   <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Phone Number *" className="w-full border-2 border-slate-200 focus:border-slate-800 rounded-xl px-5 py-4 text-base outline-none transition-colors" />
+                 <div className="space-y-4">
+                    {relationship && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                        {relationship === 'owner' && (
+                          <div className="mb-6">
+                            <div className="pt-2 space-y-4">
+                              <label className="text-base font-medium text-slate-800 block">Do you have an agreement with a broker to represent this property?</label>
+                              <div className="flex gap-4">
+                                <button onClick={() => setHasBrokerAgreement(true)} className={`px-6 py-2.5 rounded-lg border font-semibold transition-colors ${hasBrokerAgreement === true ? 'bg-[#1a2b49] text-white border-[#1a2b49]' : 'bg-white text-slate-700 border-slate-300 hover:border-slate-800'}`}>Yes</button>
+                                <button onClick={() => setHasBrokerAgreement(false)} className={`px-6 py-2.5 rounded-lg border font-semibold transition-colors ${hasBrokerAgreement === false ? 'bg-[#1a2b49] text-white border-[#1a2b49]' : 'bg-white text-slate-700 border-slate-300 hover:border-slate-800'}`}>No</button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {((relationship === 'owner' && hasBrokerAgreement) || relationship === 'broker') && (
+                          <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-sm">
+                            <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="Name of Agent" className="w-full px-5 py-4 text-base outline-none border-b border-slate-200" />
+                            <input type="text" value={brokerageName} onChange={e => setBrokerageName(e.target.value)} placeholder="Name of Brokerage" className="w-full px-5 py-4 text-base outline-none border-b border-slate-200" />
+                            <input type="tel" value={agentPhone} onChange={e => setAgentPhone(e.target.value)} placeholder="Agent Phone Number" className="w-full px-5 py-4 text-base outline-none border-b border-slate-200" />
+                            <input type="email" value={agentEmail} onChange={e => setAgentEmail(e.target.value)} placeholder="Agent Email ID" className="w-full px-5 py-4 text-base outline-none" />
+                          </div>
+                        )}
+                      </div>
+                    )}
                  </div>
                </div>
              </div>
@@ -1170,15 +1360,27 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
                  </div>
 
                  <div className="pt-4 space-y-4">
-                   <label className="text-lg font-semibold text-[#1a2b49] block mb-1">Referred by Brand Ambassador?</label>
-                   <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                     <ChoiceBox label="Yes" icon={CheckCircle} small selected={brandAmbassador === true} onClick={() => setBrandAmbassador(true)} />
-                     <ChoiceBox label="No" icon={XCircle} small selected={brandAmbassador === false} onClick={() => setBrandAmbassador(false)} />
-                   </div>
-                 </div>
+                    <label className="text-lg font-semibold text-[#1a2b49] block mb-1">Referred by Brand Ambassador?</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+                      <ChoiceBox label="Yes" icon={CheckCircle} small selected={brandAmbassador === true} onClick={() => setBrandAmbassador(true)} />
+                      <ChoiceBox label="No" icon={XCircle} small selected={brandAmbassador === false} onClick={() => setBrandAmbassador(false)} />
+                    </div>
+                    {brandAmbassador === true && (
+                      <div className="pt-2 animate-fade-in">
+                        <label className="text-sm font-medium text-slate-700 block mb-2">Brand Ambassador Name <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" 
+                          value={brandAmbassadorName} 
+                          onChange={e => setBrandAmbassadorName(e.target.value)} 
+                          placeholder="Name of Brand Ambassador who referred you" 
+                          className="w-full px-4 py-3 border-2 border-slate-200 focus:border-slate-800 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 outline-none transition-colors" 
+                        />
+                      </div>
+                    )}
+                  </div>
 
                  <div className="space-y-4 pt-6 border-t border-slate-200">
-                   <h2 className="text-xl font-bold text-[#1a2b49]">Attestation & Signature</h2>
+                   <h2 className="text-xl font-bold text-[#1a2b49]">Attestation & Signature <span className="text-red-500">*</span></h2>
                    
                    <label className="flex items-start gap-4">
                      <input type="checkbox" checked={attestation1} onChange={e => setAttestation1(e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" />
@@ -1246,7 +1448,7 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
               disabled={submitting || Object.keys(photoUploadProgress).length > 0}
               className={`font-bold text-white px-8 py-3.5 rounded-lg transition-all active:scale-95 flex items-center gap-2 ${
                 currentStep === 1 ? 'bg-[#E51D53] hover:bg-rose-600' : 
-                currentStep === TOTAL_STEPS ? 'bg-[#E51D53] hover:bg-rose-600' : 
+                currentStep === TOTAL_STEPS ? 'bg-[#E51D53] hover:bg-[#1a2b49]' : 
                 'bg-slate-900 hover:bg-slate-800'
               } disabled:opacity-70 disabled:cursor-not-allowed`}
             >
