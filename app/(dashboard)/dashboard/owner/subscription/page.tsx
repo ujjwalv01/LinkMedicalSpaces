@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { CreditCard, Calendar, CheckCircle, XCircle, ArrowRight, ShieldCheck, Activity } from 'lucide-react'
+import { CreditCard, ShieldCheck, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import SubscriptionListClient from './SubscriptionListClient'
 
 export default async function OwnerSubscriptionPage() {
   const session = await getServerSession(authOptions)
@@ -11,21 +12,14 @@ export default async function OwnerSubscriptionPage() {
     redirect('/signin')
   }
 
-  // Fetch all subscriptions for this owner
+  // Fetch all subscriptions for this owner with user details
   const subscriptions = await prisma.subscription.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { name: true, email: true } }
+    }
   })
-
-  // Format dates
-  const formatDate = (date: Date | null) => {
-    if (!date) return '—'
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(new Date(date))
-  }
 
   const activeCount = subscriptions.filter(s => s.status === 'ACTIVE').length
 
@@ -66,79 +60,7 @@ export default async function OwnerSubscriptionPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subscriptions.map((sub) => {
-            const isActive = sub.status === 'ACTIVE'
-            const isTest = sub.stripeSubscriptionId?.includes('test') || !sub.stripeSubscriptionId
-            
-            return (
-              <div 
-                key={sub.id} 
-                className={`bg-white rounded-3xl border-2 p-6 shadow-sm relative overflow-hidden transition-all ${
-                  isActive ? 'border-teal-500 shadow-teal-500/10 hover:shadow-teal-500/20' : 'border-slate-200 opacity-80 hover:opacity-100'
-                }`}
-              >
-                {/* Background decorative blob */}
-                {isActive && (
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-teal-50 rounded-full blur-2xl z-0 pointer-events-none" />
-                )}
-                
-                <div className="relative z-10 flex flex-col h-full">
-                  <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Plan</span>
-                        <h3 className="text-lg font-extrabold text-slate-900">{sub.planName}</h3>
-                      </div>
-                      
-                      <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                        isActive ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-slate-50 text-slate-500 border border-slate-200'
-                      }`}>
-                        {isActive ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                        {sub.status}
-                      </div>
-                    </div>
-
-                    <div className="flex items-end gap-1 mb-8">
-                      <span className="text-4xl font-black text-slate-900">${sub.amount}</span>
-                      <span className="text-sm font-semibold text-slate-500 mb-1">/year</span>
-                    </div>
-
-                    <div className="space-y-4 mb-8">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2 text-slate-500 font-medium">
-                          <Calendar className="w-4 h-4" /> Start Date
-                        </span>
-                        <span className="font-bold text-slate-900">{formatDate(sub.startDate || sub.createdAt)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2 text-slate-500 font-medium">
-                          <Activity className="w-4 h-4" /> Renewal
-                        </span>
-                        <span className="font-bold text-slate-900">{formatDate(sub.endDate)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">ID:</span>
-                      <span className="text-[11px] font-mono font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded truncate">
-                        {sub.stripeSubscriptionId || sub.id}
-                      </span>
-                    </div>
-                    
-                    {isTest && (
-                      <span className="text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-md uppercase tracking-wider flex-shrink-0 ml-2">
-                        Sandbox
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <SubscriptionListClient subscriptions={subscriptions} />
       )}
     </div>
   )
