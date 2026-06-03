@@ -62,7 +62,6 @@ export async function GET(req: NextRequest) {
             select: {
               listings: true,
             },
-            },
           },
         },
       }),
