@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success?region=orlando`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success?region=orlando&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/cancel`,
       metadata: { userId },
       subscription_data: {

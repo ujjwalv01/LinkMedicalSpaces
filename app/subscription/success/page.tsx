@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { CheckCircle, ArrowRight, Sparkles, Building } from 'lucide-react'
@@ -21,24 +21,39 @@ const generateConfetti = (count = 80) => {
   }))
 }
 
-export default function SubscriptionSuccessPage() {
+function SubscriptionSuccessContent() {
   const { data: session, update } = useSession()
   const router = useRouter()
   const [confetti, setConfetti] = useState<any[]>([])
 
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get('session_id')
+
   useEffect(() => {
     setConfetti(generateConfetti(100))
 
-    // Force NextAuth session refresh to fetch updated subscription status from DB
-    const refreshSession = async () => {
+    const syncSubscription = async () => {
+      if (sessionId) {
+        try {
+          await fetch('/api/subscriptions/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId })
+          })
+        } catch (err) {
+          console.error('Failed to sync subscription:', err)
+        }
+      }
+      
+      // Force NextAuth session refresh to fetch updated subscription status from DB
       try {
         await update()
       } catch (err) {
         console.error('Failed to update session:', err)
       }
     }
-    refreshSession()
-  }, [update])
+    syncSubscription()
+  }, [update, sessionId])
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
@@ -127,5 +142,13 @@ export default function SubscriptionSuccessPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50">Loading...</div>}>
+      <SubscriptionSuccessContent />
+    </Suspense>
   )
 }
