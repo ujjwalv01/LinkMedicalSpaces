@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
           _count: {
             select: {
               listings: true,
-              bookings: true,
+            },
             },
           },
         },
@@ -69,8 +69,18 @@ export async function GET(req: NextRequest) {
       prisma.user.count({ where }),
     ])
 
+    const enrichedUsers = await Promise.all(users.map(async (u) => {
+      let inquiriesCount = 0
+      if (u.role === 'OWNER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN') {
+        inquiriesCount = await prisma.enquiry.count({ where: { listing: { userId: u.id } } })
+      } else {
+        inquiriesCount = await prisma.enquiry.count({ where: { email: u.email } })
+      }
+      return { ...u, inquiriesCount }
+    }))
+
     return NextResponse.json({
-      users,
+      users: enrichedUsers,
       pagination: {
         page,
         limit,

@@ -273,7 +273,7 @@ export default function AdminUserDetailPage() {
         <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-blue-600" />
-            Inquiries / Bookings ({user._count.bookings})
+            Inquiries / Bookings ({user.inquiriesCount})
           </div>
         </h3>
         {user.bookings.length === 0 ? (

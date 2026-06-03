@@ -55,7 +55,13 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ user, adminRole: admin.role })
+    const inquiriesCount = user.role === 'OWNER' || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+      ? await prisma.enquiry.count({ where: { listing: { userId: user.id } } })
+      : await prisma.enquiry.count({ where: { email: user.email } })
+
+    const enrichedUser = { ...user, inquiriesCount }
+
+    return NextResponse.json({ user: enrichedUser, adminRole: admin.role })
   } catch (error) {
     console.error('[GET /api/lms-admin/users/[id]]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -24,7 +24,8 @@ interface UserRow {
   subscriptionStatus: string
   createdAt: string
   lastLogin: string | null
-  _count: { listings: number; bookings: number }
+  _count: { listings: number }
+  inquiriesCount: number
 }
 
 const ROLE_OPTIONS = [
@@ -220,7 +221,7 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-700">{user._count.listings}</td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-700">{user._count.bookings}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-slate-700">{user.inquiriesCount}</td>
                     <td className="px-5 py-4 text-sm font-semibold text-slate-600">{formatDate(user.createdAt)}</td>
                     <td className="px-5 py-4 text-sm font-semibold text-slate-600">{formatDate(user.lastLogin)}</td>
                   </tr>
