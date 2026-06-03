@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
@@ -38,6 +38,16 @@ export default function SidebarNav() {
   const currentStatus = searchParams.get('status')
   
   const [openDropdown, setOpenDropdown] = useState<string | null>('My Listings')
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/owner/enquiries/unread')
+      .then(res => res.json())
+      .then(data => {
+        if (data.count) setUnreadCount(data.count)
+      })
+      .catch(console.error)
+  }, [])
 
   const toggleDropdown = (name: string) => {
     if (openDropdown === name) setOpenDropdown(null)
@@ -102,12 +112,17 @@ export default function SidebarNav() {
           <Link
             key={item.name}
             href={item.href}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
               isActive ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Icon className="w-5 h-5" />
-            {item.name}
+            <div className="flex items-center gap-3">
+              <Icon className="w-5 h-5" />
+              {item.name}
+            </div>
+            {item.name === 'Enquiries' && unreadCount > 0 && (
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-sm shadow-red-500/50" />
+            )}
           </Link>
         )
       })}

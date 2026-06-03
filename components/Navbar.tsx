@@ -42,6 +42,7 @@ export default function Navbar() {
   // --- UI Open states ---
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -55,6 +56,18 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Fetch unread count for owners
+  useEffect(() => {
+    if (authStatus === 'authenticated' && session?.user?.role === 'OWNER') {
+      fetch('/api/owner/enquiries/unread')
+        .then(res => res.json())
+        .then(data => {
+          if (data.count) setUnreadCount(data.count)
+        })
+        .catch(console.error)
+    }
+  }, [authStatus, session])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
@@ -125,6 +138,9 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              {unreadCount > 0 && (
+                <div className="absolute top-0 right-5 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse" />
+              )}
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
             </button>
 
@@ -147,10 +163,15 @@ export default function Navbar() {
                       
                       <button
                         onClick={() => { setIsDropdownOpen(false); router.push(dashboardPath) }}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                       >
-                        <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                        Dashboard
+                        <div className="flex items-center gap-2.5">
+                          <LayoutDashboard className="w-4 h-4 text-slate-400" />
+                          Dashboard
+                        </div>
+                        {unreadCount > 0 && (
+                          <div className="w-2 h-2 bg-red-500 rounded-full" />
+                        )}
                       </button>
                       <button
                         onClick={() => { setIsDropdownOpen(false); router.push('/list-your-space') }}
