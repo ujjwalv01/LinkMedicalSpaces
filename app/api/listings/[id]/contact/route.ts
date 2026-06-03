@@ -50,19 +50,44 @@ export async function POST(
 
     const { name, email, phone, message, startDate, priceOption } = validation.data
 
-    await sendInquiryEmail({
-      to: listing.user.email,
-      hostName: listing.user.name || 'Medical Space Host',
-      listingTitle: listing.title || 'Medical Space',
-      renterName: name,
-      renterEmail: email,
-      renterPhone: phone || undefined,
-      message,
-      startDate: startDate || undefined,
-      priceOption: priceOption || undefined,
-    })
+    // Send email notification to the lister
+    try {
+      await sendInquiryEmail({
+        to: listing.user.email,
+        hostName: listing.user.name || 'Medical Space Host',
+        listingTitle: listing.title || 'Medical Space',
+        renterName: name,
+        renterEmail: email,
+        renterPhone: phone || undefined,
+        message,
+        startDate: startDate || undefined,
+        priceOption: priceOption || undefined,
+      })
+    } catch (emailErr) {
+      console.error('[POST /api/listings/[id]/contact] Email send failed (non-blocking):', emailErr)
+    }
 
-    return NextResponse.json({ success: true, message: 'Inquiry email sent successfully' })
+    // Persist enquiry + initial message in DB for dashboard tracking
+    try {
+      await prisma.enquiry.create({
+        data: {
+          listingId: listing.id,
+          name,
+          email,
+          phone: phone || null,
+          messages: {
+            create: {
+              content: message,
+              sender: 'ENQUIRER',
+            },
+          },
+        },
+      })
+    } catch (dbErr) {
+      console.error('[POST /api/listings/[id]/contact] DB write failed (non-blocking):', dbErr)
+    }
+
+    return NextResponse.json({ success: true, message: 'Inquiry sent successfully' })
   } catch (error) {
     console.error('[POST /api/listings/[id]/contact]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -14,7 +14,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     })
 
     if (!enquiry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (enquiry.listing.userId !== session.user.id && !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+
+    // Allow access for: listing owner, enquirer (by email), or admin
+    const isOwner = enquiry.listing.userId === session.user.id
+    const isEnquirer = enquiry.email === session.user.email
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)
+
+    if (!isOwner && !isEnquirer && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -46,16 +52,25 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     })
 
     if (!enquiry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (enquiry.listing.userId !== session.user.id && !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+
+    // Determine sender type based on who's posting
+    const isOwner = enquiry.listing.userId === session.user.id
+    const isEnquirer = enquiry.email === session.user.email
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)
+
+    if (!isOwner && !isEnquirer && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    // Auto-detect sender: if the current user is the listing owner, they're the LISTER; otherwise ENQUIRER
+    const sender = isOwner || isAdmin ? 'LISTER' : 'ENQUIRER'
 
     const message = await prisma.$transaction([
       prisma.enquiryMessage.create({
         data: {
           enquiryId: params.id,
           content,
-          sender: 'LISTER',
+          sender,
         }
       }),
       prisma.enquiry.update({

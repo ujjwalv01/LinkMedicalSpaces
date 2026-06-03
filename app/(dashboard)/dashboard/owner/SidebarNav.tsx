@@ -11,6 +11,7 @@ import {
   CreditCard,
   ChevronDown,
   BarChart3,
+  MessageSquare,
 } from 'lucide-react'
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
     ]
   },
   { name: 'Add Listing', href: '/add-listing', icon: PlusCircle },
+  { name: 'Enquiries', href: '/dashboard/owner/enquiries', icon: MessageSquare },
   { name: 'Profile', href: '/dashboard/owner/profile', icon: Settings },
   { name: 'Analytics', href: '/dashboard/owner/analytics', icon: BarChart3 },
   { name: 'Subscription', href: '/dashboard/owner/subscription', icon: CreditCard },

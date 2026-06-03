@@ -102,6 +102,46 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
 
   // --- Favorite/Save state ---
   const [isSaved, setIsSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Fetch initial save state
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/saved-listings?idsOnly=true')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ids && data.ids.includes(listing.id)) {
+            setIsSaved(true)
+          }
+        })
+        .catch(err => console.error('Failed to fetch saved status', err))
+    }
+  }, [session, listing.id])
+
+  const handleToggleSave = async () => {
+    if (!session?.user) {
+      router.push('/signin')
+      return
+    }
+    
+    setIsSaving(true)
+    const newSavedState = !isSaved
+    setIsSaved(newSavedState) // Optimistic update
+
+    try {
+      const res = await fetch('/api/saved-listings', {
+        method: newSavedState ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: listing.id })
+      })
+      if (!res.ok) throw new Error('Failed to toggle save')
+    } catch (err) {
+      console.error(err)
+      setIsSaved(!newSavedState) // Revert on error
+    } finally {
+      setIsSaving(false)
+    }
+  }
   const [showShareTooltip, setShowShareTooltip] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [hasTrackedView, setHasTrackedView] = useState(false)
@@ -394,11 +434,12 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
             </AnimatePresence>
 
             <button
-              onClick={() => setIsSaved(!isSaved)}
+              onClick={handleToggleSave}
+              disabled={isSaving}
               className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-3 py-2 transition-all ${
                 isSaved
-                  ? 'border-rose-200 bg-rose-50 text-rose-600'
-                  : 'border-slate-200 hover:text-rose-600 hover:bg-slate-50 text-slate-600'
+                  ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                  : 'border-slate-200 bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-100'
               }`}
             >
               <Heart className={`w-4 h-4 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />

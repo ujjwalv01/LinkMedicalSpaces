@@ -32,6 +32,7 @@ model User {
   listings           Listing[]
   sessions           Session[]
   subscription       Subscription?
+  savedListings      SavedListing[]
 }
 
 model Account {
@@ -99,6 +100,7 @@ model Listing {
   media             ListingMedia[]
   views             ListingView[]
   enquiries         Enquiry[]
+  savedByUsers      SavedListing[]
 
   @@index([city])
   @@index([state])
@@ -256,4 +258,17 @@ model EnquiryMessage {
 enum MessageSender {
   ENQUIRER
   LISTER
+}
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
 }

@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
+  Heart,
   Search,
   MapPin,
   Building,
@@ -93,6 +94,7 @@ function SearchSpacesPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [savedListingIds, setSavedListingIds] = useState<string[]>([])
 
   // --- Dropdown/Popover Open States ---
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false)
@@ -447,6 +449,50 @@ function SearchSpacesPage() {
   }
 
   // Handle manual typing search for Fallback Autocomplete
+  // --- Fetch Saved Listings IDs ---
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      fetch('/api/saved-listings?idsOnly=true')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ids) setSavedListingIds(data.ids)
+        })
+        .catch(err => console.error('Failed to fetch saved listing IDs', err))
+    }
+  }, [authStatus])
+
+  const handleToggleSave = async (e: React.MouseEvent, listingId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (authStatus !== 'authenticated') {
+      router.push('/signin')
+      return
+    }
+
+    const isSaved = savedListingIds.includes(listingId)
+    
+    // Optimistic UI update
+    setSavedListingIds(prev => 
+      isSaved ? prev.filter(id => id !== listingId) : [...prev, listingId]
+    )
+
+    try {
+      const res = await fetch('/api/saved-listings', {
+        method: isSaved ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId })
+      })
+      if (!res.ok) throw new Error('Failed to toggle save')
+    } catch (err) {
+      console.error(err)
+      // Revert on error
+      setSavedListingIds(prev => 
+        isSaved ? [...prev, listingId] : prev.filter(id => id !== listingId)
+      )
+    }
+  }
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     updateURL({ query: searchQuery })
@@ -799,6 +845,8 @@ function SearchSpacesPage() {
                       listing={item}
                       onMouseEnter={() => setHoveredListingId(item.id)}
                       onMouseLeave={() => setHoveredListingId(null)}
+                      isSaved={savedListingIds.includes(item.id)}
+                      onToggleSave={(e) => handleToggleSave(e, item.id)}
                     />
                   ))}
                 </div>
@@ -1000,9 +1048,11 @@ interface GridCardProps {
   listing: Listing
   onMouseEnter: () => void
   onMouseLeave: () => void
+  isSaved?: boolean
+  onToggleSave?: (e: React.MouseEvent) => void
 }
 
-function ListingGridCard({ listing, onMouseEnter, onMouseLeave }: GridCardProps) {
+function ListingGridCard({ listing, onMouseEnter, onMouseLeave, isSaved, onToggleSave }: GridCardProps) {
   const router = useRouter()
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
@@ -1104,7 +1154,13 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave }: GridCardProps)
           </span>
         </div>
 
-
+        {/* Save / Heart Button */}
+        <button
+          onClick={onToggleSave}
+          className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+        >
+          <Heart className={`w-4 h-4 transition-colors ${isSaved ? 'text-red-500 fill-red-500' : 'text-slate-400'}`} />
+        </button>
 
       </div>
 

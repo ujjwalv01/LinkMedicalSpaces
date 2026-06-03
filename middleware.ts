@@ -109,9 +109,20 @@ export default withAuth(
     // ── Protect /dashboard/owner route ────────────────────────────────────
     if (req.nextUrl.pathname.startsWith('/dashboard/owner')) {
       if (!token || (token.role !== 'OWNER' && !isAdmin)) {
-        // Fallback for seekers or unauthenticated users trying to access owner dashboard
-        // Once /dashboard/seeker exists, this could redirect there for seekers
+        if (token && token.role === 'SEEKER') {
+          return NextResponse.redirect(new URL('/dashboard/seeker', req.url))
+        }
         return NextResponse.redirect(new URL('/search-spaces', req.url))
+      }
+    }
+
+    // ── Protect /dashboard/seeker route ───────────────────────────────────
+    if (req.nextUrl.pathname.startsWith('/dashboard/seeker')) {
+      if (!token || (token.role !== 'SEEKER' && !isAdmin)) {
+        if (token && token.role === 'OWNER') {
+          return NextResponse.redirect(new URL('/dashboard/owner', req.url))
+        }
+        return NextResponse.redirect(new URL('/', req.url))
       }
     }
 
@@ -121,8 +132,7 @@ export default withAuth(
         return NextResponse.redirect(new URL('/dashboard/owner', req.url))
       }
       if (token && role === 'SEEKER') {
-        // Fallback until seeker dashboard is built
-        // return NextResponse.redirect(new URL('/dashboard/seeker', req.url))
+        return NextResponse.redirect(new URL('/dashboard/seeker', req.url))
       }
     }
 

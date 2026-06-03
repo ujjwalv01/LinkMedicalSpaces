@@ -8,7 +8,7 @@ export default async function DashboardRoot() {
   if (session?.user?.role === 'OWNER') {
     redirect('/dashboard/owner')
   } else if (session?.user?.role === 'SEEKER') {
-    redirect('/search-spaces') // Temporary fallback
+    redirect('/dashboard/seeker')
   }
 
   // Fallback
