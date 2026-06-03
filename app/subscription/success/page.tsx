@@ -28,24 +28,38 @@ function SubscriptionSuccessContent() {
 
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session_id')
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'success' | 'error' | 'idle'>('idle')
 
   useEffect(() => {
     setConfetti(generateConfetti(100))
 
     const syncSubscription = async () => {
       if (sessionId) {
+        setSyncStatus('syncing')
         try {
-          await fetch('/api/subscriptions/sync', {
+          console.log('[Success Page] Syncing subscription with session_id:', sessionId)
+          const res = await fetch('/api/subscriptions/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: sessionId })
           })
+          const data = await res.json()
+          console.log('[Success Page] Sync response:', res.status, data)
+          if (res.ok) {
+            setSyncStatus('success')
+          } else {
+            setSyncStatus('error')
+            console.error('[Success Page] Sync failed:', data.error)
+          }
         } catch (err) {
-          console.error('Failed to sync subscription:', err)
+          setSyncStatus('error')
+          console.error('[Success Page] Failed to sync subscription:', err)
         }
+      } else {
+        console.warn('[Success Page] No session_id in URL params')
       }
       
-      // Force NextAuth session refresh to fetch updated subscription status from DB
+      // Force NextAuth session refresh
       try {
         await update()
       } catch (err) {
@@ -123,6 +137,18 @@ function SubscriptionSuccessContent() {
         <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-600 text-sm leading-relaxed">
           Thank you for subscribing! Your account is now cleared to post your medical clinic listing. Listings will remain search-indexed and live for 12 months.
         </div>
+
+        {syncStatus !== 'idle' && (
+          <div className={`p-3 rounded-xl text-xs font-bold text-center ${
+            syncStatus === 'syncing' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+            syncStatus === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+            'bg-red-50 text-red-600 border border-red-200'
+          }`}>
+            {syncStatus === 'syncing' && '⏳ Syncing subscription to your account...'}
+            {syncStatus === 'success' && '✅ Subscription saved to your dashboard!'}
+            {syncStatus === 'error' && '⚠️ Could not sync automatically. It will appear once the webhook processes.'}
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           <button
