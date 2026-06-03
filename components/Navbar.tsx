@@ -138,10 +138,13 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-              {unreadCount > 0 && (
-                <div className="absolute top-0 right-5 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse" />
-              )}
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+              
+              <div className="flex items-center">
+                {unreadCount > 0 && !pathname.startsWith('/dashboard/owner/enquiries') && (
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1.5" />
+                )}
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+              </div>
             </button>
 
             {/* Slide Down Dropdown Items */}
@@ -169,7 +172,7 @@ export default function Navbar() {
                           <LayoutDashboard className="w-4 h-4 text-slate-400" />
                           Dashboard
                         </div>
-                        {unreadCount > 0 && (
+                        {unreadCount > 0 && !pathname.startsWith('/dashboard/owner/enquiries') && (
                           <div className="w-2 h-2 bg-red-500 rounded-full" />
                         )}
                       </button>

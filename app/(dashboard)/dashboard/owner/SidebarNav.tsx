@@ -120,7 +120,7 @@ export default function SidebarNav() {
               <Icon className="w-5 h-5" />
               {item.name}
             </div>
-            {item.name === 'Enquiries' && unreadCount > 0 && (
+            {item.name === 'Enquiries' && unreadCount > 0 && !pathname.startsWith('/dashboard/owner/enquiries') && (
               <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-sm shadow-red-500/50" />
             )}
           </Link>
