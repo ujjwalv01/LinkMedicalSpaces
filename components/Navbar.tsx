@@ -129,21 +129,23 @@ export default function Navbar() {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 rounded-full p-1 bg-white hover:shadow-md transition-all active:scale-97 select-none"
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 border border-slate-100 flex-shrink-0">
-                {authStatus === 'authenticated' && session?.user ? (
-                  <img src={userImage} alt="User Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-500">
-                    <User className="w-4 h-4" />
-                  </div>
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 border border-slate-100 flex-shrink-0">
+                  {authStatus === 'authenticated' && session?.user ? (
+                    <img src={userImage} alt="User Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                      <User className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+                {unreadCount > 0 && !pathname.startsWith('/dashboard/owner/enquiries') && (
+                  <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse" />
                 )}
               </div>
               
               <div className="flex items-center">
-                {unreadCount > 0 && !pathname.startsWith('/dashboard/owner/enquiries') && (
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1.5" />
-                )}
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 mr-1.5 ml-0.5" />
               </div>
             </button>
 
