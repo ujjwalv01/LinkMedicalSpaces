@@ -9,67 +9,111 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { session_id } = body
 
+    console.log('[Sync] Called with session_id:', session_id)
+
     if (!session_id) {
       return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
     }
 
-    // Retrieve checkout session from Stripe (this is the source of truth)
-    const checkoutSession = await stripe.checkout.sessions.retrieve(session_id)
-    
+    // 1. Retrieve checkout session from Stripe (this is the source of truth)
+    let checkoutSession
+    try {
+      checkoutSession = await stripe.checkout.sessions.retrieve(session_id)
+    } catch (stripeErr: any) {
+      console.error('[Sync] Stripe retrieve failed:', stripeErr.message)
+      return NextResponse.json({ error: 'Invalid Stripe session: ' + stripeErr.message }, { status: 400 })
+    }
+
+    console.log('[Sync] Stripe checkout status:', checkoutSession.payment_status, 'subscription:', checkoutSession.subscription)
+
     if (checkoutSession.payment_status !== 'paid') {
-      return NextResponse.json({ error: 'Payment not completed yet' }, { status: 400 })
+      return NextResponse.json({ error: 'Payment not completed. Status: ' + checkoutSession.payment_status }, { status: 400 })
     }
 
     const subscriptionId = checkoutSession.subscription as string
     if (!subscriptionId) {
-      return NextResponse.json({ error: 'No subscription found for this checkout' }, { status: 400 })
+      return NextResponse.json({ error: 'No subscription found in checkout session' }, { status: 400 })
     }
 
-    // Check if already synced (idempotent)
+    // 2. Check if already synced (idempotent)
     const existing = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscriptionId }
     })
     if (existing) {
+      console.log('[Sync] Already synced:', subscriptionId)
       return NextResponse.json({ success: true, message: 'Already synced' })
     }
 
-    // Determine the userId: from Stripe metadata first, then from current session
-    let userId = checkoutSession.metadata?.userId
-    
-    // If userId from metadata is dummy or missing, try current auth session
-    if (!userId || userId === 'dummy_user_id') {
-      const sessionAuth = await getServerSession(authOptions)
-      userId = sessionAuth?.user?.id || null
+    // 3. Determine the userId using multiple strategies
+    let userId: string | null = null
+
+    // Strategy A: From Stripe metadata
+    const metadataUserId = checkoutSession.metadata?.userId
+    if (metadataUserId && metadataUserId !== 'dummy_user_id') {
+      const userExists = await prisma.user.findUnique({ where: { id: metadataUserId }, select: { id: true } })
+      if (userExists) {
+        userId = metadataUserId
+        console.log('[Sync] Found user via Stripe metadata:', userId)
+      }
     }
 
-    // If still no userId, try to find user by customer email from Stripe
+    // Strategy B: From current auth session
+    if (!userId) {
+      const sessionAuth = await getServerSession(authOptions)
+      if (sessionAuth?.user?.id) {
+        userId = sessionAuth.user.id
+        console.log('[Sync] Found user via auth session:', userId)
+      }
+    }
+
+    // Strategy C: From Stripe customer email
     if (!userId) {
       const customerEmail = checkoutSession.customer_details?.email
+      console.log('[Sync] Trying email lookup with:', customerEmail)
       if (customerEmail) {
         const user = await prisma.user.findFirst({
           where: { email: { equals: customerEmail, mode: 'insensitive' } },
           select: { id: true }
         })
-        userId = user?.id || null
+        if (user) {
+          userId = user.id
+          console.log('[Sync] Found user via email:', userId)
+        }
+      }
+    }
+
+    // Strategy D: From Stripe customer object
+    if (!userId && checkoutSession.customer) {
+      try {
+        const customer = await stripe.customers.retrieve(checkoutSession.customer as string) as any
+        if (customer?.email) {
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: customer.email, mode: 'insensitive' } },
+            select: { id: true }
+          })
+          if (user) {
+            userId = user.id
+            console.log('[Sync] Found user via Stripe customer object:', userId)
+          }
+        }
+      } catch (e) {
+        console.error('[Sync] Failed to retrieve Stripe customer:', e)
       }
     }
 
     if (!userId) {
-      return NextResponse.json({ error: 'Could not determine user. Please sign in.' }, { status: 400 })
+      console.error('[Sync] Could not determine user. Metadata:', checkoutSession.metadata, 'Customer email:', checkoutSession.customer_details?.email)
+      return NextResponse.json({ 
+        error: 'Could not determine user. Please make sure you are signed in with the same account you used to subscribe.' 
+      }, { status: 400 })
     }
 
-    // Verify the user actually exists in DB
-    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
-    if (!userExists) {
-      return NextResponse.json({ error: 'User not found in database' }, { status: 400 })
-    }
-
-    // Retrieve full subscription details from Stripe
+    // 4. Retrieve full subscription details from Stripe
     const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId) as any
     const startDate = new Date(stripeSubscription.current_period_start * 1000)
     const endDate = new Date(stripeSubscription.current_period_end * 1000)
 
-    // Create subscription record in DB
+    // 5. Create subscription record in DB
     await prisma.subscription.create({
       data: {
         userId,
@@ -82,7 +126,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Update user's subscription status
+    // 6. Update user's subscription status
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -92,10 +136,10 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    console.log(`[Sync] Subscription ${subscriptionId} synced for user ${userId}`)
+    console.log('[Sync] ✅ Subscription', subscriptionId, 'synced for user', userId)
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('[POST /api/subscriptions/sync]', error)
+    console.error('[Sync] ❌ Unhandled error:', error.message, error.stack)
     return NextResponse.json({ error: error.message || 'Internal error' }, { status: 500 })
   }
 }
