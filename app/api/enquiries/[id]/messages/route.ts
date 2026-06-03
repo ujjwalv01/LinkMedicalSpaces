@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { revalidateTag } from 'next/cache'
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -78,6 +79,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         data: { updatedAt: new Date() }
       })
     ])
+
+    revalidateTag(`contacted-${enquiry.email}`)
 
     return NextResponse.json(message[0])
   } catch (error) {

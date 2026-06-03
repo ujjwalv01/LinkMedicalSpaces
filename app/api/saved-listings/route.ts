@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { revalidateTag } from 'next/cache'
 
 // GET — Fetch all saved listing IDs for the current user (lightweight check)
 export async function GET(req: NextRequest) {
@@ -99,6 +100,8 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
+    revalidateTag(`saved-listings-${session.user.id}`)
+
     return NextResponse.json({ success: true, message: 'Listing saved' })
   } catch (error) {
     console.error('[POST /api/saved-listings]', error)
@@ -136,6 +139,8 @@ export async function DELETE(req: NextRequest) {
         data: { savedCount: { decrement: 1 } },
       }),
     ])
+
+    revalidateTag(`saved-listings-${session.user.id}`)
 
     return NextResponse.json({ success: true, message: 'Listing unsaved' })
   } catch (error) {

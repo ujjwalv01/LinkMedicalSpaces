@@ -242,6 +242,8 @@ model Enquiry {
   messages  EnquiryMessage[]
 
   @@index([listingId])
+  @@index([email])
+  @@index([updatedAt])
 }
 
 model EnquiryMessage {
@@ -271,4 +273,5 @@ model SavedListing {
   @@unique([userId, listingId])
   @@index([userId])
   @@index([listingId])
+  @@index([createdAt])
 }
