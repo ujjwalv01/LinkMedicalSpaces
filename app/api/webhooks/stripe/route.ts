@@ -41,8 +41,14 @@ export async function POST(req: NextRequest) {
 
         // Retrieve full subscription details from Stripe (cast to any to prevent TS wrapper errors)
         const stripeSubscription = (await stripe.subscriptions.retrieve(subscriptionId)) as any
-        const startDate = new Date(stripeSubscription.current_period_start * 1000)
-        const endDate = new Date(stripeSubscription.current_period_end * 1000)
+        const parseDate = (v: any) => {
+          if (!v) return new Date()
+          if (typeof v === 'number') return new Date(v * 1000)
+          const n = Number(v)
+          return !isNaN(n) ? new Date(n * 1000) : new Date()
+        }
+        const startDate = parseDate(stripeSubscription.current_period_start)
+        const endDate = parseDate(stripeSubscription.current_period_end)
 
         // Update database: Subscription table
         await prisma.subscription.upsert({

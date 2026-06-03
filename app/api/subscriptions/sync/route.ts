@@ -110,8 +110,27 @@ export async function POST(req: NextRequest) {
 
     // 4. Retrieve full subscription details from Stripe
     const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId) as any
-    const startDate = new Date(stripeSubscription.current_period_start * 1000)
-    const endDate = new Date(stripeSubscription.current_period_end * 1000)
+    
+    console.log('[Sync] Raw Stripe period_start:', stripeSubscription.current_period_start, 'type:', typeof stripeSubscription.current_period_start)
+    console.log('[Sync] Raw Stripe period_end:', stripeSubscription.current_period_end, 'type:', typeof stripeSubscription.current_period_end)
+    
+    // Safely parse dates - Stripe returns Unix timestamps in seconds
+    const parseStripeDate = (val: any): Date => {
+      if (!val) return new Date()
+      if (typeof val === 'number') return new Date(val * 1000)
+      if (typeof val === 'string') {
+        const num = Number(val)
+        if (!isNaN(num)) return new Date(num * 1000)
+        const parsed = new Date(val)
+        if (!isNaN(parsed.getTime())) return parsed
+      }
+      return new Date()
+    }
+    
+    const startDate = parseStripeDate(stripeSubscription.current_period_start)
+    const endDate = parseStripeDate(stripeSubscription.current_period_end)
+    
+    console.log('[Sync] Parsed startDate:', startDate.toISOString(), 'endDate:', endDate.toISOString())
 
     // 5. Create subscription record in DB
     await prisma.subscription.create({
