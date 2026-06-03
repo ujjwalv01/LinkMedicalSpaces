@@ -11,11 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const subscription = await prisma.subscription.findUnique({
+    const subscriptions = await prisma.subscription.findMany({
       where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json({ subscription, plans: PLANS })
+    return NextResponse.json({ subscriptions, plans: PLANS })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

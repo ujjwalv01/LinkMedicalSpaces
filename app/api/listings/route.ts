@@ -181,8 +181,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Check subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: session.user.id },
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: session.user.id, status: 'ACTIVE' },
     })
     if (!subscription || subscription.status !== 'ACTIVE') {
       return NextResponse.json(

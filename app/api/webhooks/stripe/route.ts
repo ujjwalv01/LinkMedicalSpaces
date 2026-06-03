@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
         // Update database: Subscription table
         await prisma.subscription.upsert({
-          where: { userId },
+          where: { stripeSubscriptionId: subscriptionId },
           update: {
             stripeSubscriptionId: subscriptionId,
             status: 'ACTIVE',
