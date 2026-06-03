@@ -30,7 +30,7 @@ export default function SubscriptionListClient({ subscriptions }: { subscription
           <div 
             key={sub.id} 
             className={`bg-white rounded-2xl border transition-all overflow-hidden ${
-              isActive ? 'border-teal-200 shadow-sm hover:shadow-md' : 'border-slate-200 opacity-90'
+              isActive ? 'border-emerald-200 shadow-sm hover:shadow-md' : 'border-red-200 opacity-90'
             }`}
           >
             {/* Header Row */}
@@ -38,7 +38,7 @@ export default function SubscriptionListClient({ subscriptions }: { subscription
               
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${
-                  isActive ? 'bg-teal-50 text-teal-600' : 'bg-slate-100 text-slate-500'
+                  isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
                 }`}>
                   {index + 1}
                 </div>
@@ -47,7 +47,7 @@ export default function SubscriptionListClient({ subscriptions }: { subscription
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-bold text-slate-900">{sub.planName} Plan</h3>
                     <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                      isActive ? 'bg-teal-50 text-teal-700' : 'bg-slate-100 text-slate-600'
+                      isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
                     }`}>
                       {isActive ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                       {sub.status}

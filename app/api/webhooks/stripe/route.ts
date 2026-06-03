@@ -47,8 +47,14 @@ export async function POST(req: NextRequest) {
           const n = Number(v)
           return !isNaN(n) ? new Date(n * 1000) : new Date()
         }
-        const startDate = parseDate(stripeSubscription.current_period_start)
-        const endDate = parseDate(stripeSubscription.current_period_end)
+        const startDate = parseDate(stripeSubscription.current_period_start || stripeSubscription.start_date || stripeSubscription.created)
+        let endDate = parseDate(stripeSubscription.current_period_end)
+        
+        // Force 1-year renewal if Stripe didn't give us a distinct end date (common in Sandbox)
+        if (endDate.getTime() === startDate.getTime() || !stripeSubscription.current_period_end) {
+          endDate = new Date(startDate)
+          endDate.setFullYear(endDate.getFullYear() + 1)
+        }
 
         // Update database: Subscription table
         await prisma.subscription.upsert({

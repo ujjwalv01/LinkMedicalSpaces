@@ -127,8 +127,15 @@ export async function POST(req: NextRequest) {
       return new Date()
     }
     
-    const startDate = parseStripeDate(stripeSubscription.current_period_start)
-    const endDate = parseStripeDate(stripeSubscription.current_period_end)
+    // Fallback to check if Stripe gave us bad dates
+    const startDate = parseStripeDate(stripeSubscription.current_period_start || stripeSubscription.start_date || stripeSubscription.created)
+    let endDate = parseStripeDate(stripeSubscription.current_period_end)
+    
+    // Force 1-year renewal if Stripe didn't give us a distinct end date (common in Sandbox/Test Clocks)
+    if (endDate.getTime() === startDate.getTime() || !stripeSubscription.current_period_end) {
+      endDate = new Date(startDate)
+      endDate.setFullYear(endDate.getFullYear() + 1)
+    }
     
     console.log('[Sync] Parsed startDate:', startDate.toISOString(), 'endDate:', endDate.toISOString())
 
