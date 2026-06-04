@@ -124,6 +124,8 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
 
   const [mapsLoaded, setMapsLoaded] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<any>(null)
+  const markerInstanceRef = useRef<any>(null)
   const autocompleteInputRef = useRef<HTMLInputElement>(null)
   const isImageProcessing = useRef<boolean>(false)
   const featuredImageRef = useRef<any>(null)
@@ -378,13 +380,16 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
     importLibrary("places").then(() => {
       const google = (window as any).google;
       setMapsLoaded(true)
-      if (mapRef.current) {
+      if (mapRef.current && !mapInstanceRef.current) {
         const defaultLatLng = { lat: latitude || 28.5383, lng: longitude || -81.3792 }
         const map = new google.maps.Map(mapRef.current, {
           center: defaultLatLng, zoom: latitude ? 15 : 10,
           mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
         })
         const marker = new google.maps.Marker({ position: defaultLatLng, map, draggable: true })
+        
+        mapInstanceRef.current = map
+        markerInstanceRef.current = marker
 
         if (autocompleteInputRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, { types: ['address'] })
@@ -408,19 +413,56 @@ function ListingForm({ draftIdFromProps }: { draftIdFromProps?: string }) {
               if (comp.types.includes('administrative_area_level_1')) parsedState = comp.short_name
               if (comp.types.includes('postal_code')) parsedZip = comp.long_name
             })
-            setStreetAddress(parsedStreet || place.formatted_address || '')
+            const finalStreet = parsedStreet.trim() || place.formatted_address || ''
+            setStreetAddress(finalStreet)
             setCity(parsedCity)
             setState(parsedState)
             setZipCode(parsedZip)
+            
+            if (autocompleteInputRef.current) {
+              autocompleteInputRef.current.value = finalStreet
+            }
           })
         }
+        
         marker.addListener('dragend', () => {
           const pos = marker.getPosition()
-          if (pos) { setLatitude(pos.lat()); setLongitude(pos.lng()) }
+          if (pos) { 
+            const newLat = pos.lat()
+            const newLng = pos.lng()
+            setLatitude(newLat)
+            setLongitude(newLng)
+            
+            const geocoder = new google.maps.Geocoder()
+            geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results: any, status: any) => {
+              if (status === 'OK' && results[0]) {
+                const place = results[0]
+                const addressComponents = place.address_components || []
+                let parsedStreet = '', parsedCity = '', parsedState = '', parsedZip = ''
+                addressComponents.forEach((comp: any) => {
+                  if (comp.types.includes('street_number')) parsedStreet = comp.long_name + ' '
+                  if (comp.types.includes('route')) parsedStreet += comp.long_name
+                  if (comp.types.includes('locality')) parsedCity = comp.long_name
+                  if (comp.types.includes('administrative_area_level_1')) parsedState = comp.short_name
+                  if (comp.types.includes('postal_code')) parsedZip = comp.long_name
+                })
+                
+                const finalStreet = parsedStreet.trim() || place.formatted_address || ''
+                setStreetAddress(finalStreet)
+                setCity(parsedCity)
+                setState(parsedState)
+                setZipCode(parsedZip)
+                
+                if (autocompleteInputRef.current) {
+                  autocompleteInputRef.current.value = finalStreet
+                }
+              }
+            })
+          }
         })
       }
     }).catch((err: any) => console.error('Maps failed:', err))
-  }, [currentStep, latitude, longitude])
+  }, [currentStep]) // Removed latitude and longitude so map doesn't re-render on pin drop
 
   // Lazily create a draft in DB only when actually needed (e.g. image upload)
   const ensureDraftId = async (): Promise<string | null> => {
