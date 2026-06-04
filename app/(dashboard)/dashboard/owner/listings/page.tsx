@@ -67,93 +67,143 @@ export default async function OwnerListingsPage({
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {listings.map((listing) => {
-            const image = listing.media?.[0]?.originalUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800'
-            const availabilityHours = listing.availabilityHours as any || {}
-            const region = availabilityHours.region === 'other' ? 'Non-Orlando' : 'Orlando'
-            
-            let displayPrice = ''
-            if (listing.pricePerMonth) displayPrice = `$${listing.pricePerMonth}/mo`
-            else if (listing.pricePerDay) displayPrice = `$${listing.pricePerDay}/day`
-            else if (listing.pricePerHour) displayPrice = `$${listing.pricePerHour}/hr`
-            else displayPrice = 'Contact Price'
+        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+          <div className="hidden lg:flex items-center px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="w-48 shrink-0">Photo</div>
+            <div className="flex-[2] px-6">Property Info</div>
+            <div className="flex-1 px-4">Added On</div>
+            <div className="flex-1 px-4">Lease Type</div>
+            <div className="flex-1 px-4">Status</div>
+            <div className="flex-1 pl-4 pr-6 text-right">Price & Actions</div>
+          </div>
+          
+          <div className="flex flex-col divide-y divide-slate-100">
+            {listings.map((listing) => {
+              const image = listing.media?.[0]?.originalUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800'
+              const availabilityHours = listing.availabilityHours as any || {}
+              const region = availabilityHours.region === 'other' ? 'Non-Orlando' : 'Orlando'
+              
+              let displayPrice = ''
+              if (listing.pricePerMonth) displayPrice = `$${listing.pricePerMonth}/mo`
+              else if (listing.pricePerDay) displayPrice = `$${listing.pricePerDay}/day`
+              else if (listing.pricePerHour) displayPrice = `$${listing.pricePerHour}/hr`
+              else displayPrice = 'Contact'
 
-            return (
-              <div key={listing.id} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col">
-                <div className="relative h-56 overflow-hidden bg-slate-100 block">
-                  <img src={image} alt={listing.title || 'Listing'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  
-                  {/* Status Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md ${
-                      listing.status === 'PUBLISHED' ? 'bg-emerald-500/90 text-white' :
-                      listing.status === 'PENDING' ? 'bg-amber-500/90 text-white' :
-                      listing.status === 'REJECTED' ? 'bg-red-500/90 text-white' :
-                      'bg-slate-900/70 text-white'
-                    }`}>
-                      {listing.status}
-                    </span>
-                  </div>
-
-                  {/* Region Badge */}
-                  <div className="absolute top-4 right-4">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md bg-white/90 text-slate-800">
-                      {region}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="font-bold text-slate-900 text-lg mb-1 line-clamp-1">{listing.title || 'Untitled Space'}</h3>
-                  <p className="text-sm text-slate-500 flex items-center gap-1 mb-4">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {listing.city || 'Unknown'}, {listing.state || 'Unknown'}
-                  </p>
-                  
-                  <div className="flex items-center gap-6 mb-6">
-                    <p className="font-extrabold text-teal-700">{displayPrice}</p>
-                    <div className="flex gap-4 ml-auto text-slate-500">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold">
-                        <Eye className="w-4 h-4" />
-                        {listing.viewCount}
+              return (
+                <div key={listing.id} className="flex flex-col lg:flex-row items-stretch hover:bg-slate-50 transition-colors">
+                  {/* Photo */}
+                  <div className="w-full lg:w-48 shrink-0 relative">
+                    <Link 
+                      href={listing.status === 'PUBLISHED' ? `/property/${listing.slug}` : `/dashboard/owner/listings/${listing.id}/edit`}
+                      target={listing.status === 'PUBLISHED' ? "_blank" : "_self"}
+                      className="block w-full h-48 lg:h-full relative overflow-hidden"
+                    >
+                      <img src={image} alt={listing.title || 'Listing'} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                      {/* Region Badge overlay on image for mobile, or always */}
+                      <div className="absolute bottom-2 left-2 lg:top-2 lg:bottom-auto">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md shadow-sm backdrop-blur-md bg-white/90 text-slate-800">
+                          {region}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs font-semibold">
-                        <Bookmark className="w-4 h-4" />
-                        {listing.savedCount}
+                    </Link>
+                  </div>
+                  
+                  {/* Property Info */}
+                  <div className="flex-[2] p-4 lg:p-6 flex flex-col justify-center">
+                    <Link 
+                      href={listing.status === 'PUBLISHED' ? `/property/${listing.slug}` : `/dashboard/owner/listings/${listing.id}/edit`}
+                      target={listing.status === 'PUBLISHED' ? "_blank" : "_self"}
+                      className="font-bold text-slate-900 text-[15px] mb-1 line-clamp-1 hover:text-teal-600 transition-colors"
+                    >
+                      {listing.title || 'Untitled Space'}
+                    </Link>
+                    <p className="text-sm text-slate-500 mb-3 flex items-center gap-1 line-clamp-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {listing.city || 'Unknown'}, {listing.state || 'Unknown'}
+                    </p>
+                    
+                    <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{listing.examRooms || 0} Rooms</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{listing.viewCount} Views</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Bookmark className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{listing.savedCount} Saves</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-auto grid grid-cols-2 gap-3">
-                    <Link
-                      href={`/dashboard/owner/listings/${listing.id}/edit`}
-                      className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm text-center transition-colors"
-                    >
-                      Edit Listing
-                    </Link>
-                    <Link
-                      href={listing.status === 'PUBLISHED' ? `/property/${listing.slug}` : `/dashboard/owner/listings/${listing.id}/edit`}
-                      target={listing.status === 'PUBLISHED' ? '_blank' : '_self'}
-                      className="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-bold px-4 py-2.5 rounded-xl text-sm text-center transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      View Live
-                      {listing.status === 'PUBLISHED' && <ExternalLink className="w-3.5 h-3.5" />}
-                    </Link>
+                  {/* Added On */}
+                  <div className="flex-1 p-4 lg:p-6 flex flex-col justify-center lg:border-l border-slate-100">
+                    <span className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Added On</span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {new Date(listing.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </span>
                   </div>
 
-                  <div className="mt-3">
-                    <Link
-                      href={`/dashboard/owner/listings/${listing.id}/info`}
-                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold px-4 py-2.5 rounded-xl text-sm text-center transition-colors w-full flex items-center justify-center gap-1.5"
-                    >
-                      Analytics & Enquiries
-                    </Link>
+                  {/* Lease Type */}
+                  <div className="flex-1 p-4 lg:p-6 flex flex-col justify-center lg:border-l border-slate-100">
+                    <span className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Lease Type</span>
+                    <span className="text-sm font-semibold text-slate-700 capitalize">
+                      {listing.leaseType?.toLowerCase().replace('_', ' ') || 'Sublease'}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex-1 p-4 lg:p-6 flex flex-col justify-center lg:border-l border-slate-100">
+                    <span className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`inline-block text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md ${
+                        listing.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' :
+                        listing.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                        listing.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {listing.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Price & Actions */}
+                  <div className="flex-1 p-4 lg:p-6 flex flex-col justify-center lg:items-end lg:border-l border-slate-100 gap-2">
+                    <div className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-[-4px]">Price</div>
+                    <div className="text-emerald-600 font-bold text-[15px] mb-1">
+                      {displayPrice}
+                    </div>
+                    
+                    <div className="flex flex-wrap lg:flex-col lg:items-end gap-2 mt-2">
+                      <Link 
+                        href={`/dashboard/owner/listings/${listing.id}/edit`}
+                        className="text-[11px] font-bold text-slate-500 hover:text-teal-600 flex items-center gap-1.5 uppercase tracking-wider"
+                      >
+                        Edit
+                      </Link>
+                      {listing.status === 'PUBLISHED' && (
+                        <Link 
+                          href={`/property/${listing.slug}`}
+                          target="_blank"
+                          className="text-[11px] font-bold text-slate-500 hover:text-teal-600 flex items-center gap-1.5 uppercase tracking-wider"
+                        >
+                          View Live <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                      <Link 
+                        href={`/dashboard/owner/listings/${listing.id}/info`}
+                        className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 uppercase tracking-wider"
+                      >
+                        Analytics
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

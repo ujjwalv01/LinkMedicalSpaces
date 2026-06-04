@@ -10,9 +10,12 @@ export default async function OwnerGlobalAnalyticsPage() {
 
   if (!userId) redirect('/signin')
 
-  // Fetch all listings for this user
+  // Fetch all listings for this user (excluding drafts)
   const listings = await prisma.listing.findMany({
-    where: { userId },
+    where: { 
+      userId,
+      status: { not: 'DRAFT' }
+    },
     select: {
       id: true,
       title: true,
