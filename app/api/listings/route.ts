@@ -52,7 +52,8 @@ export async function GET(req: NextRequest) {
       andConditions.push({ state })
     }
     if (spaceType) {
-      andConditions.push({ spaceType })
+      // Temporarily ignoring spaceType filter so all listings show regardless of selection
+      // andConditions.push({ spaceType })
     }
 
     // Latitude / Longitude / Radius bounding box filter
@@ -129,7 +130,7 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          media: { orderBy: { order: 'asc' }, take: 3 },
+          media: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
           user: { select: { id: true, name: true, image: true, verificationStatus: true } },
         },
       }),

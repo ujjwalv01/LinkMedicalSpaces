@@ -156,7 +156,7 @@ export default async function OwnerDashboardHome() {
                       <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
                         <div className="flex items-center gap-1.5">
                           <Building className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{listing.examRooms || 0} Rooms</span>
+                          <span>{listing.rooms || 0} Rooms</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Eye className="w-3.5 h-3.5 text-slate-400" />
@@ -177,11 +177,11 @@ export default async function OwnerDashboardHome() {
                       </span>
                     </div>
 
-                    {/* Lease Type */}
+                    {/* Space Type */}
                     <div className="flex-1 p-4 lg:p-6 flex flex-col justify-center lg:border-l border-slate-100">
-                      <span className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Lease Type</span>
+                      <span className="lg:hidden text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Space Type</span>
                       <span className="text-sm font-semibold text-slate-700 capitalize">
-                        {listing.leaseType?.toLowerCase().replace('_', ' ') || 'Sublease'}
+                        {listing.spaceType?.toLowerCase().replace('_', ' ') || 'Sublease'}
                       </span>
                     </div>
 

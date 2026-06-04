@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PropertyPageProps): Promise<M
   const listing = await prisma.listing.findUnique({
     where: { slug: params.slug },
     include: {
-      media: { orderBy: { order: 'asc' }, take: 1 },
+      media: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }], take: 1 },
     },
   })
 
@@ -69,7 +69,7 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
   const listing = await prisma.listing.findUnique({
     where: { slug: params.slug },
     include: {
-      media: { orderBy: { order: 'asc' } },
+      media: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
       user: {
         select: {
           id: true,
