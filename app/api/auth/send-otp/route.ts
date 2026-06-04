@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Send email via Resend
     await resend.emails.send({
-      from: 'LinkMedicalSpaces <noreply@linkmedicalspaces.com>',
+      from: 'LinkMedicalSpaces <onboarding@resend.dev>',
       to: normalizedEmail,
       subject: `${code} — Your LinkMedicalSpaces verification code`,
       html: `
