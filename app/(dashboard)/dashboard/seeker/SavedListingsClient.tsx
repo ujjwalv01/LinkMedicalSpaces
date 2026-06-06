@@ -2,15 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import {
   Heart,
   MapPin,
-  Building,
-  Star,
   ChevronLeft,
   ChevronRight,
-  Search,
   Sparkles,
 } from 'lucide-react'
 import { removeSavedListing } from '@/app/actions/saved-listings'
@@ -98,10 +94,8 @@ function SavedListingCard({ listing, onUnsave }: { listing: SavedListing, onUnsa
   const [isHovered, setIsHovered] = useState(false)
 
   const mediaList = listing.media && listing.media.length > 0
-    ? listing.media.slice(0, 3)
+    ? listing.media
     : [{ id: 'fallback', originalUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800', order: 0 }]
-
-  const spaceTypeLabel = listing.spaceType ? listing.spaceType.replace(/_/g, ' ') : 'Medical Space'
 
   let displayPrice = ''
   if (listing.pricePerMonth) displayPrice = `$${listing.pricePerMonth}/mo`
@@ -132,103 +126,117 @@ function SavedListingCard({ listing, onUnsave }: { listing: SavedListing, onUnsa
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => router.push(`/property/${listing.slug}`)}
-      className="group cursor-pointer bg-white rounded-[26px] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full hover:scale-[1.01]"
+      className="group cursor-pointer bg-white rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between h-full hover:shadow-lg"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-        <div
-          className="flex h-full w-full transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${activeImageIndex * 100}%)`, width: `${mediaList.length * 100}%` }}
-        >
-          {mediaList.map((m, idx) => {
-            const cloudinaryUrl = m.optimizedUrl || m.originalUrl
-            const isCloudinary = cloudinaryUrl.includes('res.cloudinary.com')
-            const optimizedSrc = isCloudinary 
-              ? cloudinaryUrl.replace('/upload/', '/upload/f_auto,q_auto,w_800/')
-              : cloudinaryUrl
 
-            return (
-              <div key={m.id || idx} className="h-full w-full flex-shrink-0 relative">
-                <Image
-                  src={optimizedSrc}
-                  alt={`${listing.title || 'Space'} - ${idx + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  placeholder={isCloudinary ? 'blur' : 'empty'}
-                  blurDataURL={isCloudinary ? cloudinaryUrl.replace('/upload/', '/upload/w_50,e_blur:1000/') : undefined}
-                />
-              </div>
-            )
-          })}
+      {/* Image Container */}
+      <div className="relative aspect-[16/11] w-full overflow-hidden bg-slate-100 rounded-2xl">
+
+        {/* Image Carousel */}
+        <div
+          className="flex h-full w-full transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
+        >
+          {mediaList.map((m, idx) => (
+            <div key={m.id || idx} className="h-full w-full flex-shrink-0 relative" style={{ minWidth: '100%' }}>
+              <img
+                src={m.optimizedUrl || m.originalUrl}
+                alt={`${listing.title || 'Space'} - ${idx + 1}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          ))}
         </div>
 
+        {/* Carousel Chevrons (Appear on Hover) */}
         {isHovered && mediaList.length > 1 && (
           <>
             <button
               onClick={handlePrevImage}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 rounded-full p-1.5 shadow-md z-20 hover:scale-105 active:scale-95 transition-all"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-700 rounded-full p-1 shadow-md z-20 hover:scale-105 active:scale-95 transition-all"
             >
-              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+              <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
             <button
               onClick={handleNextImage}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 rounded-full p-1.5 shadow-md z-20 hover:scale-105 active:scale-95 transition-all"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-700 rounded-full p-1 shadow-md z-20 hover:scale-105 active:scale-95 transition-all"
             >
-              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </>
         )}
 
+        {/* Dot Indicators */}
         {mediaList.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
-            {mediaList.map((_, idx) => (
-              <span
-                key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeImageIndex === idx ? 'bg-white w-4' : 'bg-white/60 w-1.5'
-                }`}
-              />
-            ))}
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
+            {mediaList.length <= 5 ? (
+              mediaList.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    activeImageIndex === idx ? 'bg-white w-3.5' : 'bg-white/50 w-1.5'
+                  }`}
+                />
+              ))
+            ) : (
+              Array.from({ length: 5 }).map((_, i) => {
+                const startIdx = Math.max(0, Math.min(activeImageIndex - 2, mediaList.length - 5))
+                const dotIdx = startIdx + i
+                return (
+                  <span
+                    key={dotIdx}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      activeImageIndex === dotIdx ? 'bg-white w-3.5' : 'bg-white/50 w-1.5'
+                    }`}
+                  />
+                )
+              })
+            )}
           </div>
         )}
 
-        <div className="absolute top-4 left-4 z-20">
-          <span className="bg-slate-900/70 backdrop-blur-md text-white text-[10px] font-extrabold px-3 py-1 rounded-lg flex items-center gap-1 uppercase tracking-wider">
-            <Building className="w-3 h-3 text-teal-400" />
-            {spaceTypeLabel}
-          </span>
-        </div>
-
+        {/* Save / Heart Button */}
         <button
           onClick={handleUnsaveClick}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-90"
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow transition-all hover:scale-110 active:scale-90"
           title="Remove from saved"
         >
-          <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+          <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
         </button>
+
       </div>
 
-      <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-black text-teal-600">{displayPrice}</span>
-            <div className="flex items-center gap-1 text-slate-700 text-xs font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-              <span>4.9</span>
-              <span className="text-slate-400 font-medium">(18)</span>
-            </div>
-          </div>
-          <h3 className="font-extrabold text-slate-800 text-base leading-snug group-hover:text-teal-600 transition-colors line-clamp-1">
-            {listing.title || 'Unnamed Medical Space'}
+      {/* Listing Content Details */}
+      <div className="pt-3 pb-1 px-1 flex-1 flex flex-col justify-between space-y-0.5">
+        <div className="space-y-0.5">
+          {/* Address as title */}
+          <h3 className="font-bold text-slate-900 text-[15px] leading-snug group-hover:text-teal-700 transition-colors line-clamp-1">
+            {listing.address || listing.title || 'Medical Space'}
           </h3>
-          <p className="text-slate-500 text-xs flex items-center gap-1 leading-none pt-0.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+
+          {/* Title / Name (secondary) */}
+          {listing.title && listing.address && (
+            <p className="text-slate-400 text-[13px] line-clamp-1">
+              {listing.title}
+            </p>
+          )}
+
+          {/* City, State */}
+          <p className="text-slate-400 text-[13px] flex items-center gap-1">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
             <span className="line-clamp-1">
-              {listing.city && listing.state ? `${listing.city}, ${listing.state}` : 'No address specified'}
+              {listing.city && listing.state ? `${listing.city}, ${listing.state}` : 'Location not specified'}
             </span>
           </p>
         </div>
+
+        {/* Price */}
+        <div className="pt-1.5 flex items-baseline">
+          <span className="text-lg font-bold text-slate-900">{displayPrice}</span>
+        </div>
       </div>
+
     </div>
   )
 }
