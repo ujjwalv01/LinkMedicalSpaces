@@ -52,12 +52,12 @@ export default function Footer() {
             <h4 className="font-bold text-slate-300 text-xs uppercase tracking-widest">Support</h4>
             <ul className="space-y-2 text-sm text-slate-400 font-semibold">
               <li>
-                <button onClick={() => router.push('/pricing#faq')} className="hover:text-teal-500 transition-colors">
+                <button onClick={() => router.push('/faqs')} className="hover:text-teal-500 transition-colors">
                   Help Center & FAQs
                 </button>
               </li>
               <li>
-                <button onClick={() => router.push('/pricing')} className="hover:text-teal-500 transition-colors">
+                <button onClick={() => router.push('/contact')} className="hover:text-teal-500 transition-colors">
                   Contact Support
                 </button>
               </li>

@@ -31,7 +31,9 @@ import {
   Coins,
   Send,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Mail,
+  Phone
 } from 'lucide-react'
 
 interface ListingMedia {
@@ -47,6 +49,8 @@ interface ListingUser {
   image: string | null
   verificationStatus: string | null
   createdAt: string
+  email?: string | null
+  phone?: string | null
 }
 
 interface Listing {
@@ -409,128 +413,52 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
             </p>
           </div>
           
-          {/* Action Row */}
-          <div className="flex items-center gap-2 relative">
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-teal-600 hover:bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 transition-all"
-            >
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Share</span>
-            </button>
-
-            {/* Share Tooltip */}
-            <AnimatePresence>
-              {showShareTooltip && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg whitespace-nowrap shadow-lg z-30"
-                >
-                  Link copied!
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              onClick={handleToggleSave}
-              disabled={isSaving}
-              className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-3 py-2 transition-all ${
-                isSaved
-                  ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
-                  : 'border-slate-200 bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-100'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
-              <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Gallery Image Grid */}
-        <div className="relative rounded-[28px] overflow-hidden bg-slate-100 shadow-sm border border-slate-200 aspect-[2.1/1] hidden md:grid grid-cols-2 gap-2">
-          
-          {/* Main Primary Image */}
-          <div
-            onClick={() => { setActiveImageIndex(0); setIsGalleryOpen(true) }}
-            className="w-full h-full cursor-pointer overflow-hidden relative group"
-          >
-            <img
-              src={mainPhotos[0]?.originalUrl || defaultPlaceholder}
-              alt="Space Primary"
-              className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
-          </div>
-
-          {/* Secondary 2x2 Grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {[...Array(4)].map((_, index) => {
-              const photoIdx = index + 1
-              const photo = mainPhotos[photoIdx]
-              return (
-                <div
-                  key={index}
-                  onClick={() => { setActiveImageIndex(photo ? photoIdx : 0); setIsGalleryOpen(true) }}
-                  className="w-full h-full cursor-pointer overflow-hidden relative group bg-slate-200"
-                >
-                  {photo ? (
-                    <>
-                      <img
-                        src={photo.originalUrl}
-                        alt={`Space Media ${photoIdx}`}
-                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">
-                      LinkMedicalSpaces
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* "Show all photos" trigger */}
-          <button
-            onClick={() => { setActiveImageIndex(0); setIsGalleryOpen(true) }}
-            className="absolute bottom-5 right-5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-1.5 transition-all active:scale-95"
-          >
-            <Building className="w-3.5 h-3.5" />
-            Show all photos ({listing.media.length})
-          </button>
-        </div>
-
-        {/* Mobile Carousel representation */}
-        <div className="relative md:hidden rounded-2xl overflow-hidden aspect-[4/3] bg-slate-100 shadow">
-          <img
-            src={listing.media[activeImageIndex]?.originalUrl || defaultPlaceholder}
-            alt="Space Mobile"
-            className="w-full h-full object-cover"
-          />
-          {listing.media.length > 1 && (
-            <>
+          {/* Action Row & Price */}
+          <div className="flex flex-col items-end gap-2 relative">
+            <div className="flex items-center gap-2">
               <button
-                onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === 0 ? listing.media.length - 1 : prev - 1) }}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 bg-white/90 p-1.5 rounded-full shadow"
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-teal-600 hover:bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 transition-all"
               >
-                <ChevronLeft className="w-4 h-4 text-slate-800" />
+                <Share2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Share</span>
               </button>
+
+              {/* Share Tooltip */}
+              <AnimatePresence>
+                {showShareTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg whitespace-nowrap shadow-lg z-30"
+                  >
+                    Link copied!
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <button
-                onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === listing.media.length - 1 ? 0 : prev + 1) }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-white/90 p-1.5 rounded-full shadow"
+                onClick={handleToggleSave}
+                disabled={isSaving}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${
+                  isSaved
+                    ? 'bg-[#1e3a8a] text-white hover:bg-blue-900'
+                    : 'bg-[#1e3a8a] text-white hover:bg-blue-900 opacity-90'
+                }`}
               >
-                <ChevronRight className="w-4 h-4 text-slate-800" />
+                <Heart className={`w-4 h-4 ${isSaved ? 'fill-white' : ''}`} />
               </button>
-              <div className="absolute bottom-3 right-3 bg-black/75 text-white font-bold text-[10px] px-2 py-0.5 rounded">
-                {activeImageIndex + 1} / {listing.media.length}
-              </div>
-            </>
-          )}
+            </div>
+            
+            {/* Price */}
+            <div className="text-xl md:text-2xl font-bold text-red-600">
+              {listing.pricePerMonth ? `$${listing.pricePerMonth}/mo` : listing.pricePerDay ? `$${listing.pricePerDay}/day` : listing.pricePerHour ? `$${listing.pricePerHour}/hr` : 'Contact for Price'}
+            </div>
+          </div>
         </div>
+
+
 
       </section>
 
@@ -539,6 +467,75 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
         
         {/* Left Column — 65% details */}
         <div className="space-y-8">
+          
+          {/* Image Slider */}
+          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] bg-white flex items-center justify-center overflow-hidden">
+            <img 
+              src={listing.media[activeImageIndex]?.originalUrl || defaultPlaceholder} 
+              alt="Space" 
+              className="w-full h-full object-contain"
+            />
+            {listing.media.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === 0 ? listing.media.length - 1 : prev - 1) }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#007BFF] hover:text-blue-700 transition-colors"
+                >
+                  <ChevronLeft className="w-10 h-10 stroke-[2]" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === listing.media.length - 1 ? 0 : prev + 1) }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#007BFF] hover:text-blue-700 transition-colors"
+                >
+                  <ChevronRight className="w-10 h-10 stroke-[2]" />
+                </button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                  {listing.media.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-2.5 h-2.5 rounded-full transition-colors ${idx === activeImageIndex ? 'bg-[#007BFF]' : 'bg-slate-300'}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Overview Card */}
+          <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.05)] p-6 md:p-8 space-y-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-6">Overview</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-6">
+              <div className="flex items-start gap-4">
+                <Activity className="w-5 h-5 text-red-400 mt-1" />
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold mb-1">Total office area available</p>
+                  <p className="text-sm text-slate-800 font-medium">{listing.squareFeet ? `${listing.squareFeet} Sq. Ft.` : 'Not specified'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <Building className="w-5 h-5 text-red-400 mt-1" />
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold mb-1">Entire office available for rent</p>
+                  <p className="text-sm text-slate-800 font-medium">{listing.rooms ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <Clock className="w-5 h-5 text-red-400 mt-1" />
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold mb-1">Space availability</p>
+                  <p className="text-sm text-slate-800 font-medium">Available now</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <FileText className="w-5 h-5 text-red-400 mt-1" />
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold mb-1">Lease type</p>
+                  <p className="text-sm text-slate-800 font-medium">{listing.spaceType ? listing.spaceType.replace(/_/g, ' ') : 'Medical Space'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Metadata badges row */}
           <div className="flex flex-wrap items-center gap-2.5">
@@ -737,206 +734,127 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
               <p className="text-slate-500 text-xs font-semibold">Host details are not specified.</p>
             )}
           </div>
-
         </div>
 
-        {/* Right Column — 35% Sticky booking calculator */}
+        {/* Right Column — Contact Info Card */}
         <div className="lg:sticky lg:top-24">
-          <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-xl space-y-6">
+          <div className="bg-white border border-slate-100 rounded-[16px] p-6 shadow-sm space-y-6">
+            <h3 className="text-xl font-bold text-[#3B4D66] mb-2">Contact info</h3>
             
-            {/* Header Pricing Tag */}
-            <div>
-              {hasPricing ? (
-                <div className="space-y-1">
-                  <div className="flex items-baseline text-slate-900 gap-1">
-                    <span className="text-2xl font-black text-teal-600">
-                      {activeTab === 'hour' && `$${listing.pricePerHour}`}
-                      {activeTab === 'day' && `$${listing.pricePerDay}`}
-                      {activeTab === 'month' && `$${listing.pricePerMonth}`}
-                    </span>
-                    <span className="text-slate-500 font-bold text-sm">
-                      /{activeTab === 'hour' ? 'hour' : activeTab === 'day' ? 'day' : 'month'}
-                    </span>
+            {!session ? (
+              <div className="relative">
+                <div className="space-y-4 filter blur-[4px] select-none pointer-events-none opacity-60">
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <Mail className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-semibold text-sm">{listing.user?.email || 'Email not provided'}</span>
                   </div>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    Select a tier below to calculate total cost
-                  </p>
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <Phone className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-semibold text-sm">{listing.user?.phone || 'Phone not provided'}</span>
+                  </div>
+                  
+                  <div className="pt-2 space-y-3">
+                    <div className="h-10 w-full rounded border border-slate-300"></div>
+                    <div className="h-10 w-full rounded border border-slate-300"></div>
+                    <div className="h-10 w-full rounded border border-slate-300"></div>
+                    <div className="h-28 w-full rounded border border-slate-300"></div>
+                  </div>
+                  
+                  <div className="h-10 w-24 rounded bg-[#3B4D66] mt-4"></div>
                 </div>
-              ) : (
-                <span className="text-xl font-extrabold text-slate-800">Contact for Pricing</span>
-              )}
-            </div>
 
-            {/* Pricing Tabs Selector (Hours/Days/Months) */}
-            {hasPricing && priceOptions.length > 1 && (
-              <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1 border border-slate-200/50">
-                {priceOptions.map((opt) => (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-lg">
                   <button
-                    key={opt.id}
-                    onClick={() => setActiveTab(opt.id)}
-                    className={`flex-1 text-center py-2.5 rounded-xl text-xs font-black transition-all ${
-                      activeTab === opt.id
-                        ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
-                    }`}
+                    onClick={() => {
+                      const callback = encodeURIComponent(window.location.pathname)
+                      router.push(`/signin?callbackUrl=${callback}`)
+                    }}
+                    className="flex items-center gap-2 border border-[#3B4D66] text-[#3B4D66] bg-white hover:bg-slate-50 font-bold text-sm px-6 py-3 rounded-md transition-all shadow-sm"
                   >
-                    {opt.label}
+                    <User className="w-4 h-4" />
+                    Login To See Details
                   </button>
-                ))}
+                </div>
               </div>
-            )}
-
-            {/* Form inputs depending on active Tab */}
-            {hasPricing && (
-              <div className="space-y-4 border-y border-slate-100 py-5">
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <Mail className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-medium text-sm text-slate-600">{listing.user?.email || 'Email not provided'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <Phone className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-medium text-sm text-slate-600">{listing.user?.phone || 'Phone not provided'}</span>
+                  </div>
+                </div>
                 
-                {activeTab === 'hour' && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Select Date</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={bookingDate}
-                          onChange={(e) => setBookingDate(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Start Time</label>
-                        <div className="relative">
-                          <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                          <input
-                            type="time"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">End Time</label>
-                        <div className="relative">
-                          <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                          <input
-                            type="time"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                {contactSuccess ? (
+                  <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 flex gap-3 text-sm">
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                    Your inquiry has been successfully sent to the host. They will get back to you shortly.
                   </div>
-                )}
-
-                {activeTab === 'day' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Start Date</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                        />
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-3 pt-2">
+                    {contactError && (
+                      <div className="text-red-500 text-xs font-bold bg-red-50 border border-red-100 p-3 rounded-lg">
+                        {contactError}
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">End Date</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'month' && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Start Month</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={monthlyStartDate}
-                          onChange={(e) => setMonthlyStartDate(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50"
-                        />
-                      </div>
-                    </div>
+                    )}
+                    <input
+                      type="text"
+                      required
+                      placeholder="Name"
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                    />
+                    <input
+                      type="email"
+                      required
+                      placeholder="Email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Phone"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                    />
+                    <textarea
+                      required
+                      rows={5}
+                      placeholder="Message"
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors resize-none"
+                    />
                     
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Duration (Months)</label>
-                      <select
-                        value={durationMonths}
-                        onChange={(e) => setDurationMonths(parseInt(e.target.value))}
-                        className="w-full border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-semibold outline-none focus:border-teal-500 transition-colors bg-slate-50/50 cursor-pointer"
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={contactLoading}
+                        className="bg-[#2D4566] hover:bg-[#1E3048] text-white font-semibold text-sm px-6 py-2 rounded shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                       >
-                        {[1, 2, 3, 6, 12, 24].map((m) => (
-                          <option key={m} value={m}>
-                            {m} {m === 1 ? 'Month' : 'Months'}
-                          </option>
-                        ))}
-                      </select>
+                        {contactLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Submitting...</span>
+                          </>
+                        ) : (
+                          <span>Submit</span>
+                        )}
+                      </button>
                     </div>
-                  </div>
+                  </form>
                 )}
-
               </div>
             )}
-
-            {/* Total Price breakdown */}
-            {hasPricing && pricingDetails.quantity > 0 && (
-              <div className="space-y-3 text-sm border-b border-slate-100 pb-5">
-                <div className="flex justify-between items-center text-slate-600 font-medium">
-                  <span>
-                    {pricingDetails.rateLabel} × {pricingDetails.quantity}{' '}
-                    {activeTab === 'hour' ? (pricingDetails.quantity === 1 ? 'hour' : 'hours') : activeTab === 'day' ? (pricingDetails.quantity === 1 ? 'day' : 'days') : (pricingDetails.quantity === 1 ? 'month' : 'months')}
-                  </span>
-                  <span className="font-bold text-slate-800">${pricingDetails.subtotal}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-slate-600 font-medium">
-                  <span>Medical Reservation Fee</span>
-                  <span className="font-bold text-slate-800">${pricingDetails.serviceFee}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-base font-black text-slate-900 pt-2.5 border-t border-dashed border-slate-200">
-                  <span>Estimated Total</span>
-                  <span className="text-teal-600">${pricingDetails.total}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Inquiry/Action buttons */}
-            <button
-              onClick={() => setIsContactModalOpen(true)}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm py-4 rounded-2xl shadow-lg shadow-teal-600/20 transition-all hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-1.5"
-            >
-              <Send className="w-4 h-4" />
-              {hasPricing ? 'Request to Book Space' : 'Contact Lister'}
-            </button>
-            
-            <p className="text-[10px] text-center text-slate-400 font-semibold tracking-wider uppercase">
-              You won&apos;t be charged yet — Contacting is free
-            </p>
-
           </div>
         </div>
-
       </section>
 
       {/* ─── Lightbox Modal Gallery Slideshow ─── */}
@@ -1004,154 +922,7 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
         )}
       </AnimatePresence>
 
-      {/* ─── Contact Form Overlay Modal Slide-In ─── */}
-      <AnimatePresence>
-        {isContactModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            
-            {/* Dark background layer */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setIsContactModalOpen(false); setContactSuccess(false) }}
-              className="absolute inset-0 bg-slate-950"
-            />
 
-            {/* Modal Body */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden relative z-10 border border-slate-100 p-6 sm:p-8"
-            >
-              
-              <button
-                onClick={() => { setIsContactModalOpen(false); setContactSuccess(false) }}
-                className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors border border-slate-200/50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {contactSuccess ? (
-                <div className="text-center py-8 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-teal-50 border border-teal-200 text-teal-600 flex items-center justify-center mx-auto shadow-sm">
-                    <Check className="w-8 h-8 stroke-[3]" />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-extrabold text-slate-900">Inquiry Sent Successfully</h3>
-                    <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-                      We have sent your details and reservation requests to the host. They will review your dates and reply directly to your email.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => { setIsContactModalOpen(false); setContactSuccess(false) }}
-                    className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm px-6 py-3 rounded-2xl transition-all shadow-md active:scale-95 mt-4"
-                  >
-                    Close
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleContactSubmit} className="space-y-4">
-                  
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl font-black text-slate-900 leading-none">Inquire about this space</h3>
-                    <p className="text-slate-400 text-xs font-semibold">Send a message directly to the space lister</p>
-                  </div>
-
-                  {contactError && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold p-3.5 rounded-2xl">
-                      {contactError}
-                    </div>
-                  )}
-
-                  {/* Pricing Breakdown inside contact form */}
-                  {hasPricing && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex justify-between items-center text-xs font-bold text-slate-600">
-                      <span>Booking Option:</span>
-                      <span className="text-teal-600 font-extrabold capitalize bg-teal-50 border border-teal-100 rounded-lg px-2.5 py-0.5">
-                        {activeTab} • Estimated Total: ${pricingDetails.total}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Your Full Name</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="John Doe"
-                        value={contactName}
-                        onChange={(e) => setContactName(e.target.value)}
-                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-teal-500 transition-colors"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Your Email</label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="doctor@example.com"
-                          value={contactEmail}
-                          onChange={(e) => setContactEmail(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-teal-500 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone Number (Optional)</label>
-                        <input
-                          type="tel"
-                          placeholder="+1 (555) 000-0000"
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-teal-500 transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Your Message</label>
-                      <textarea
-                        required
-                        rows={4}
-                        placeholder="Hi! I am looking to rent this space. Could you provide details on check-in or access instructions?"
-                        value={contactMessage}
-                        onChange={(e) => setContactMessage(e.target.value)}
-                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-teal-500 transition-colors resize-none"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={contactLoading}
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                  >
-                    {contactLoading ? (
-                      <>
-                        <Loader2 className="w-4.5 h-4.5 animate-spin" />
-                        <span>Sending message...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        <span>Send Inquiry Email</span>
-                      </>
-                    )}
-                  </button>
-                  
-                </form>
-              )}
-
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   )

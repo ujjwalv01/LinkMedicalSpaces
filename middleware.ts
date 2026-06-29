@@ -139,14 +139,12 @@ export default withAuth(
     // ── Onboarding gate ─────────────────────────────────────────────────
     // If user is authenticated but not onboarded, redirect to /onboarding
     // (except if they're already on /onboarding)
-    if (token && onboarded === false && !req.nextUrl.pathname.startsWith('/onboarding') && req.nextUrl.pathname !== '/') {
+    if (token && onboarded === false && !req.nextUrl.pathname.startsWith('/onboarding') && !req.nextUrl.pathname.startsWith('/search-spaces') && req.nextUrl.pathname !== '/') {
       const onboardingUrl = new URL('/onboarding', req.url)
       
       // Determine intent from current path
       if (req.nextUrl.pathname.startsWith('/list-your-space') || req.nextUrl.pathname.startsWith('/add-listing')) {
         onboardingUrl.searchParams.set('intent', 'lister')
-      } else if (req.nextUrl.pathname.startsWith('/search-spaces')) {
-        onboardingUrl.searchParams.set('intent', 'seeker')
       }
 
       // Preserve the original destination so we can redirect back after onboarding
@@ -167,16 +165,7 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // ── Guard: /search-spaces ───────────────────────────────────────────
-    if (req.nextUrl.pathname.startsWith('/search-spaces')) {
-      if (!token) {
-        const url = new URL('/signup', req.url)
-        url.searchParams.set('callbackUrl', req.url)
-        const response = NextResponse.redirect(url)
-        response.cookies.set('signup_intent', 'SEEKER', { path: '/', maxAge: 3600 })
-        return response
-      }
-    }
+
 
     // ── Guard: /list-your-space & /add-listing ──────────────────────────
     if (req.nextUrl.pathname.startsWith('/list-your-space') || req.nextUrl.pathname.startsWith('/add-listing')) {

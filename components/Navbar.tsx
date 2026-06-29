@@ -93,10 +93,10 @@ export default function Navbar() {
         {/* Right Side: Navigation Links & User Dropdown */}
         <div className="hidden md:flex items-center gap-2 lg:gap-4 flex-shrink-0">
           <button
-            onClick={() => router.push('/about')}
+            onClick={() => router.push('/our-story')}
             className="text-xs sm:text-sm font-bold text-slate-600 hover:text-teal-600 transition-colors py-2 px-3 rounded-xl hover:bg-slate-50"
           >
-            About Us
+            Our Story
           </button>
           <button
             onClick={() => router.push('/pricing')}

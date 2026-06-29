@@ -82,11 +82,13 @@ export default function ContactPage() {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Name *"
-                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 placeholder-slate-500 outline-none transition-all"
+                  placeholder=""
+                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 outline-none transition-all peer"
                 />
                 {!formData.name && (
-                  <span className="absolute left-[3.8rem] top-[14px] text-teal-600 pointer-events-none">*</span>
+                  <span className="absolute inset-y-0 left-4 flex items-center text-slate-500 pointer-events-none peer-focus:opacity-30">
+                    Name <span className="text-red-500 ml-1">*</span>
+                  </span>
                 )}
               </div>
             </div>
@@ -101,11 +103,13 @@ export default function ContactPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Email *"
-                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 placeholder-slate-500 outline-none transition-all"
+                  placeholder=""
+                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 outline-none transition-all peer"
                 />
                 {!formData.email && (
-                  <span className="absolute left-[3.6rem] top-[14px] text-teal-600 pointer-events-none">*</span>
+                  <span className="absolute inset-y-0 left-4 flex items-center text-slate-500 pointer-events-none peer-focus:opacity-30">
+                    Email <span className="text-red-500 ml-1">*</span>
+                  </span>
                 )}
               </div>
             </div>
@@ -120,11 +124,13 @@ export default function ContactPage() {
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Phone *"
-                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 placeholder-slate-500 outline-none transition-all"
+                  placeholder=""
+                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 outline-none transition-all peer"
                 />
                 {!formData.phone && (
-                  <span className="absolute left-[4.1rem] top-[14px] text-teal-600 pointer-events-none">*</span>
+                  <span className="absolute inset-y-0 left-4 flex items-center text-slate-500 pointer-events-none peer-focus:opacity-30">
+                    Phone <span className="text-red-500 ml-1">*</span>
+                  </span>
                 )}
               </div>
             </div>
@@ -139,11 +145,13 @@ export default function ContactPage() {
                   required
                   value={formData.subject}
                   onChange={handleChange}
-                  placeholder="Subject *"
-                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 placeholder-slate-500 outline-none transition-all"
+                  placeholder=""
+                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 outline-none transition-all peer"
                 />
                 {!formData.subject && (
-                  <span className="absolute left-[4.7rem] top-[14px] text-teal-600 pointer-events-none">*</span>
+                  <span className="absolute inset-y-0 left-4 flex items-center text-slate-500 pointer-events-none peer-focus:opacity-30">
+                    Subject <span className="text-red-500 ml-1">*</span>
+                  </span>
                 )}
               </div>
             </div>
@@ -158,11 +166,13 @@ export default function ContactPage() {
                   rows={6}
                   value={formData.message}
                   onChange={handleChange}
-                  placeholder="Message *"
-                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 placeholder-slate-500 outline-none transition-all resize-y"
+                  placeholder=""
+                  className="w-full bg-transparent border border-slate-300 hover:border-slate-400 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 rounded-md px-4 py-3 text-slate-800 outline-none transition-all resize-y peer"
                 />
                 {!formData.message && (
-                  <span className="absolute left-[5.4rem] top-[14px] text-teal-600 pointer-events-none">*</span>
+                  <span className="absolute top-3 left-4 flex items-center text-slate-500 pointer-events-none peer-focus:opacity-30">
+                    Message <span className="text-red-500 ml-1">*</span>
+                  </span>
                 )}
               </div>
             </div>
