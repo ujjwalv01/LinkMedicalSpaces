@@ -65,13 +65,22 @@ export default function Footer() {
           </div>
 
           <div className="space-y-3 col-span-2 sm:col-span-1">
-            <h4 className="font-bold text-slate-300 text-xs uppercase tracking-widest">Legal</h4>
+            <h4 className="font-bold text-slate-300 text-xs uppercase tracking-widest">Policies</h4>
             <ul className="space-y-2 text-sm text-slate-400 font-semibold">
               <li>
-                <span className="cursor-default hover:text-slate-300 transition-colors">Privacy Policy</span>
+                <button onClick={() => router.push('/terms')} className="hover:text-teal-500 transition-colors">
+                  Terms and Purchase Policies
+                </button>
               </li>
               <li>
-                <span className="cursor-default hover:text-slate-300 transition-colors">Terms & Conditions</span>
+                <button onClick={() => router.push('/disclaimer')} className="hover:text-teal-500 transition-colors">
+                  Disclaimer
+                </button>
+              </li>
+              <li>
+                <button onClick={() => router.push('/privacy')} className="hover:text-teal-500 transition-colors">
+                  Privacy Policy
+                </button>
               </li>
             </ul>
           </div>
