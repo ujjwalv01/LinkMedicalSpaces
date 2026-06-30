@@ -12,7 +12,7 @@ export default function ContactPage() {
     subject: '',
     message: ''
   })
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -26,7 +26,7 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     // Simulate an API call
     setTimeout(() => {
       setIsSubmitting(false)
@@ -176,7 +176,6 @@ export default function ContactPage() {
                 )}
               </div>
             </div>
-
             <div>
               <button
                 type="submit"
@@ -189,7 +188,6 @@ export default function ContactPage() {
           </form>
         </div>
       </main>
-
       <Footer />
     </div>
   )

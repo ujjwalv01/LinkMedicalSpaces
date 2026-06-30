@@ -33,7 +33,8 @@ import {
   Loader2,
   ArrowLeft,
   Mail,
-  Phone
+  Phone,
+  Image as ImageIcon
 } from 'lucide-react'
 
 interface ListingMedia {
@@ -41,6 +42,7 @@ interface ListingMedia {
   originalUrl: string
   caption: string | null
   order: number
+  type?: string
 }
 
 interface ListingUser {
@@ -374,22 +376,43 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
     }
   }
 
-  // --- Copy Share URL ---
-  const handleCopyLink = () => {
+  // --- Share URL ---
+  const handleShare = async () => {
     const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
-      setShowShareTooltip(true)
-      setTimeout(() => setShowShareTooltip(false), 2000)
-    })
+    const title = listing.title || 'Link Medical Spaces'
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          url,
+        })
+      } catch (err) {
+        // User cancelled or share failed, fallback to copy
+        if ((err as Error).name !== 'AbortError') {
+          navigator.clipboard.writeText(url).then(() => {
+            setShowShareTooltip(true)
+            setTimeout(() => setShowShareTooltip(false), 2000)
+          })
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setShowShareTooltip(true)
+        setTimeout(() => setShowShareTooltip(false), 2000)
+      })
+    }
   }
 
-  // --- Formatted Host Join Date ---
   const formattedHostDate = listing.user?.createdAt
     ? new Date(listing.user.createdAt).toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric',
       })
     : ''
+
+  const detailPhotoCount = listing.media?.filter((m) => m.type === 'IMAGE' || !m.type).length || 0
+  const detailVideoCount = listing.media?.filter((m) => m.type === 'VIDEO').length || 0
 
   const mainPhotos = listing.media.slice(0, 5)
   const defaultPlaceholder = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200'
@@ -411,13 +434,32 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
               {listing.address ? `${listing.address}, ` : ''}
               {listing.city}, {listing.state} {listing.zipCode}
             </p>
+            
+            {/* Media Counts */}
+            {(detailPhotoCount > 0 || detailVideoCount > 0) && (
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-2 text-slate-600 text-xs font-bold bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg shadow-sm">
+                  {detailPhotoCount > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-teal-600" /> {detailPhotoCount} {detailPhotoCount === 1 ? 'Photo' : 'Photos'}
+                    </span>
+                  )}
+                  {detailPhotoCount > 0 && detailVideoCount > 0 && <span className="opacity-40">|</span>}
+                  {detailVideoCount > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <Video className="w-4 h-4 text-teal-600" /> {detailVideoCount} {detailVideoCount === 1 ? 'Video' : 'Videos'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Action Row & Price */}
           <div className="flex flex-col items-end gap-2 relative">
             <div className="flex items-center gap-2">
               <button
-                onClick={handleCopyLink}
+                onClick={handleShare}
                 className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-teal-600 hover:bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 transition-all"
               >
                 <Share2 className="w-4 h-4" />
@@ -698,42 +740,6 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
             </div>
           </div>
 
-          <div className="border-t border-slate-100" />
-
-          {/* About the host Section */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <User className="w-5 h-5 text-teal-600" />
-              About the host
-            </h3>
-
-            {listing.user ? (
-              <div className="flex items-start gap-4 p-5 border border-slate-200 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-all max-w-lg">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-200 border border-slate-300 flex-shrink-0">
-                  <img
-                    src={listing.user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'}
-                    alt={listing.user.name || 'Host'}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <h4 className="font-extrabold text-slate-950 text-base">
-                      {listing.user.name || 'Space Provider'}
-                    </h4>
-                  </div>
-                  {formattedHostDate && (
-                    <p className="text-slate-400 text-[11px] pt-1">
-                      Joined LinkMedicalSpaces in {formattedHostDate}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-slate-500 text-xs font-semibold">Host details are not specified.</p>
-            )}
-          </div>
         </div>
 
         {/* Right Column — Contact Info Card */}
@@ -744,6 +750,10 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
             {!session ? (
               <div className="relative">
                 <div className="space-y-4 filter blur-[4px] select-none pointer-events-none opacity-60">
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <User className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-bold text-sm">{listing.user?.name || 'Name not provided'}</span>
+                  </div>
                   <div className="flex items-center gap-3 text-slate-700">
                     <Mail className="w-5 h-5 text-[#E74C3C]" />
                     <span className="font-semibold text-sm">{listing.user?.email || 'Email not provided'}</span>
@@ -779,6 +789,10 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
             ) : (
               <div className="space-y-6">
                 <div className="space-y-4">
+                  <div className="flex items-center gap-3 text-slate-700">
+                    <User className="w-5 h-5 text-[#E74C3C]" />
+                    <span className="font-bold text-sm text-slate-800">{listing.user?.name || 'Name not provided'}</span>
+                  </div>
                   <div className="flex items-center gap-3 text-slate-700">
                     <Mail className="w-5 h-5 text-[#E74C3C]" />
                     <span className="font-medium text-sm text-slate-600">{listing.user?.email || 'Email not provided'}</span>

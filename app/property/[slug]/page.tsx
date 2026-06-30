@@ -74,6 +74,8 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
         select: {
           id: true,
           name: true,
+          email: true,
+          phone: true,
           image: true,
           verificationStatus: true,
           createdAt: true,

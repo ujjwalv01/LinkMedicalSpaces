@@ -1,6 +1,6 @@
 'use client'
 
-import { Edit, Trash2, MapPin, Building, Clock, Image as ImageIcon } from 'lucide-react'
+import { Edit, Trash2, MapPin, Building, Clock, Image as ImageIcon, Video } from 'lucide-react'
 
 export interface ListingCardProps {
   listing: {
@@ -14,7 +14,7 @@ export interface ListingCardProps {
     pricePerDay?: number | null
     pricePerMonth?: number | null
     status?: string
-    media?: { originalUrl: string }[]
+    media?: { originalUrl: string; type?: string }[]
     description?: string | null
     squareFeet?: number | null
   }
@@ -73,6 +73,9 @@ export default function ListingCard({
   const draftStep = getDraftStep(listing)
   const completionPercentage = Math.round((draftStep / 7) * 100)
 
+  const cardPhotoCount = listing.media?.filter((m) => m.type === 'IMAGE' || !m.type).length || 0
+  const cardVideoCount = listing.media?.filter((m) => m.type === 'VIDEO').length || 0
+
   return (
     <div className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
       {/* Listing Image */}
@@ -105,19 +108,38 @@ export default function ListingCard({
 
         {/* Space Type Badge */}
         <div className="absolute bottom-4 left-4 z-10">
-          <span className="bg-slate-900/70 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1">
+          <span className="bg-slate-900/70 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
             <Building className="w-3.5 h-3.5" />
             {spaceTypeLabel}
           </span>
         </div>
+
+
       </div>
 
       {/* Listing Content */}
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div className="space-y-2">
-          {/* Price */}
-          <div className="flex items-baseline text-slate-900">
-            <span className="text-xl font-extrabold">{displayPrice}</span>
+          {/* Price & Media Counts */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline text-slate-900">
+              <span className="text-xl font-extrabold">{displayPrice}</span>
+            </div>
+            
+            {(cardPhotoCount > 0 || cardVideoCount > 0) && (
+              <div className="flex items-center gap-2 text-slate-500 text-[11px] font-semibold bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                {cardPhotoCount > 0 && (
+                  <span className="flex items-center gap-1" title={`${cardPhotoCount} Photos`}>
+                    <ImageIcon className="w-3.5 h-3.5" /> {cardPhotoCount}
+                  </span>
+                )}
+                {cardVideoCount > 0 && (
+                  <span className="flex items-center gap-1" title={`${cardVideoCount} Videos`}>
+                    <Video className="w-3.5 h-3.5" /> {cardVideoCount}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Title */}

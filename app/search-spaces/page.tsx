@@ -18,7 +18,9 @@ import {
   X,
   ChevronDown,
   Info,
-  MapPinned
+  MapPinned,
+  Image as ImageIcon,
+  Video
 } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 
@@ -27,6 +29,7 @@ interface ListingMedia {
   id: string
   originalUrl: string
   order: number
+  type?: string
 }
 
 interface ListingUser {
@@ -1034,6 +1037,9 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave, isSaved, onToggl
     ? listing.media
     : [{ id: 'fallback', originalUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800', order: 0 }]
 
+  const cardPhotoCount = listing.media?.filter((m) => m.type === 'IMAGE' || !m.type).length || 0
+  const cardVideoCount = listing.media?.filter((m) => m.type === 'VIDEO').length || 0
+
   let displayPrice = ''
   if (listing.pricePerMonth) displayPrice = `$${listing.pricePerMonth}/mo`
   else if (listing.pricePerDay) displayPrice = `$${listing.pricePerDay}/day`
@@ -1189,11 +1195,28 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave, isSaved, onToggl
           </p>
         </div>
 
-        {/* Price + subtitle */}
-        <div className="pt-1.5 flex items-baseline">
-          <span className="text-lg font-bold text-slate-900">{displayPrice}</span>
-          {subtitle && (
-            <span className="text-slate-400 text-xs ml-2">{subtitle}</span>
+        {/* Price + subtitle + Media Counts */}
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-baseline">
+            <span className="text-lg font-bold text-slate-900">{displayPrice}</span>
+            {subtitle && (
+              <span className="text-slate-400 text-xs ml-2">{subtitle}</span>
+            )}
+          </div>
+
+          {(cardPhotoCount > 0 || cardVideoCount > 0) && (
+            <div className="flex items-center gap-2 text-slate-500 text-[11px] font-semibold bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+              {cardPhotoCount > 0 && (
+                <span className="flex items-center gap-1" title={`${cardPhotoCount} Photos`}>
+                  <ImageIcon className="w-3.5 h-3.5" /> {cardPhotoCount}
+                </span>
+              )}
+              {cardVideoCount > 0 && (
+                <span className="flex items-center gap-1" title={`${cardVideoCount} Videos`}>
+                  <Video className="w-3.5 h-3.5" /> {cardVideoCount}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
