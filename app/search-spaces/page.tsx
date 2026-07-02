@@ -1093,13 +1093,33 @@ function ListingGridCard({ listing, onMouseEnter, onMouseLeave, isSaved, onToggl
           style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
         >
           {mediaList.map((m, idx) => (
-            <div key={m.id || idx} className="h-full w-full flex-shrink-0 relative" style={{ minWidth: '100%' }}>
-              <img
-                src={m.originalUrl}
-                alt={`${listing.title || 'Space'} - ${idx + 1}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+            <div key={m.id || idx} className="h-full w-full flex-shrink-0 relative bg-black/5" style={{ minWidth: '100%' }}>
+              {m.type === 'VIDEO' ? (
+                <video
+                  src={m.originalUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const video = e.currentTarget
+                    if (video.paused) {
+                      video.play()
+                    } else {
+                      video.pause()
+                    }
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img
+                  src={m.originalUrl}
+                  alt={`${listing.title || 'Space'} - ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              )}
             </div>
           ))}
         </div>

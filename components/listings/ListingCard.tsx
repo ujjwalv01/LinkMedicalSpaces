@@ -81,11 +81,22 @@ export default function ListingCard({
       {/* Listing Image */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 flex items-center justify-center">
         {mainImage ? (
-          <img
-            src={mainImage}
-            alt={listing.title || 'Listing draft'}
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
-          />
+          listing.media?.[0]?.type === 'VIDEO' ? (
+            <video
+              src={mainImage}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+            />
+          ) : (
+            <img
+              src={mainImage}
+              alt={listing.title || 'Listing draft'}
+              className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+            />
+          )
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-300">
             <ImageIcon className="w-12 h-12 mb-2 opacity-50" />

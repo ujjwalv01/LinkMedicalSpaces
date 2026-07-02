@@ -511,12 +511,32 @@ export default function PropertyDetailClient({ listing }: { listing: Listing }) 
         <div className="space-y-8">
           
           {/* Image Slider */}
-          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] bg-white flex items-center justify-center overflow-hidden">
-            <img 
-              src={listing.media[activeImageIndex]?.originalUrl || defaultPlaceholder} 
-              alt="Space" 
-              className="w-full h-full object-contain"
-            />
+          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] bg-[#f8f9fa] flex items-center justify-center overflow-hidden rounded-[24px] shadow-sm">
+            {listing.media[activeImageIndex]?.type === 'VIDEO' ? (
+              <video
+                src={listing.media[activeImageIndex]?.originalUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const video = e.currentTarget
+                  if (video.paused) {
+                    video.play()
+                  } else {
+                    video.pause()
+                  }
+                }}
+                className="w-full h-full object-contain cursor-pointer"
+              />
+            ) : (
+              <img 
+                src={listing.media[activeImageIndex]?.originalUrl || defaultPlaceholder} 
+                alt="Space" 
+                className="w-full h-full object-contain"
+              />
+            )}
             {listing.media.length > 1 && (
               <>
                 <button
