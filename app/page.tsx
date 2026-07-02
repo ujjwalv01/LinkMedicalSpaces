@@ -77,11 +77,13 @@ export default function Home() {
   const sections = [
     {
       image: '/lms-1.jpg',
+      preheading: 'UNIQUE MARKETPLACE',
       heading: 'Connecting Docs With Medical Office Space',
       text: 'The only space on the internet where you can look specifically for medical office space, whether to lease or sublet. The only space on the internet where you can list even part of your office, even part-time.',
     },
     {
       image: '/lms-2.jpg',
+      preheading: 'PASSIVE INCOME OPPORTUNITY',
       heading: 'Optimize Your Medical Office Space',
       text: "Are you utilizing your medical office well? Turn it into a passive income stream and help out a colleague. Sublet what you don't use, when you don't use it.",
       buttonLabel: 'Post Your Space',
@@ -89,6 +91,7 @@ export default function Home() {
     },
     {
       image: '/lms-3.jpg',
+      preheading: 'ADAPT & THRIVE',
       heading: 'Start Lean, Stay Lean',
       text: "You may have noticed, the healthcare landscape is changing. Reimbursements and the cost of doing business are going in opposite directions. If you're going to thrive in private practice, you have to go lean. Focus on office space- it's probably the biggest expense for a medical practice.",
       buttonLabel: 'Find Your Medical Office',
@@ -96,6 +99,7 @@ export default function Home() {
     },
     {
       image: '/lms-4.jpg',
+      preheading: 'EMBRACE FLEXIBILITY',
       heading: 'Work On Your Terms. Even In Medicine.',
       text: "It's 2025. About time that flexibility became more norm than exception. Even in medicine. Shared workspace has been around for a while now, for good reason. It's time we embraced it too. Even in medicine.",
       buttonLabel: 'Join the Flexible Workspace',
@@ -103,6 +107,7 @@ export default function Home() {
     },
     {
       image: '/lms-5.jpg',
+      preheading: 'COST SAVINGS',
       heading: 'Zero Realtor Commissions',
       text: 'By connecting healthcare professionals directly with medical office space, we save you thousands on commissions!',
       buttonLabel: 'Post Your Space',
@@ -213,7 +218,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="w-full lg:w-1/2 space-y-6">
-                  <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">
+                  {section.preheading && (
+                    <p className="text-[#eb5253] text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-2">
+                      {section.preheading}
+                    </p>
+                  )}
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-[#204066] leading-tight">
                     {section.heading}
                   </h2>
                   <p className="text-slate-600 text-lg leading-relaxed">
